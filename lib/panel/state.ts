@@ -41,6 +41,7 @@ export interface ItemRow {
   status: "pending" | "paid" | "void";
   reserved_until: string | null;
   created_at: string;
+  split_group_id?: string | null;
 }
 export interface PaymentRow {
   id: string;
@@ -92,6 +93,7 @@ export function buildBill(
       unitPrice: i.unit_price * i.quantity,
       status: i.status as "pending" | "paid",
       reserved: i.status === "pending" && !!i.reserved_until && new Date(i.reserved_until) > now,
+      splitGroupId: i.split_group_id ?? null,
     }));
   const itemsSum = lines.reduce((s, l) => s + l.unitPrice, 0);
   const t = computeTotals(itemsSum, {
@@ -177,7 +179,7 @@ export function buildPanelState(input: {
 export function groupLines(lines: PanelLine[]): LineGroup[] {
   const groups = new Map<string, LineGroup>();
   for (const l of lines) {
-    const key = `${l.status}|${l.name}|${l.unitPrice}`;
+    const key = `${l.status}|${l.name}|${l.unitPrice}|${l.splitGroupId ?? ''}`;
     const g = groups.get(key);
     if (g) {
       g.ids.push(l.id);
@@ -192,6 +194,7 @@ export function groupLines(lines: PanelLine[]): LineGroup[] {
         ids: [l.id],
         count: 1,
         reservedCount: l.reserved ? 1 : 0,
+        splitGroupId: l.splitGroupId,
       });
     }
   }

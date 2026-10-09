@@ -10,6 +10,8 @@ export interface PanelLine {
   status: "pending" | "paid";
   /** Un cliente la tiene apartada ahora mismo (reserva vigente). */
   reserved: boolean;
+  /** Parte de un plato dividido por el cliente (mismo id en todas las partes). */
+  splitGroupId: string | null;
 }
 
 export interface PanelTotals {
@@ -82,4 +84,5 @@ export interface LineGroup {
   ids: string[];
   count: number;
   reservedCount: number;
+  splitGroupId: string | null;
 }

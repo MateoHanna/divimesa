@@ -9,7 +9,8 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 | 0. Proyecto, Supabase, Tailwind, shadcn, deploy | Completa, salvo vincular el repo al proyecto de Vercel para que cada push despliegue solo |
 | 1. Migraciones, seed, `lib/money.ts` | Completa |
 | 2. Panel del salonero (`/panel`) | Código completo y probado en lógica y SQL; falta la prueba de punta a punta en el sitio desplegado |
-| 3 a 6 | Sin empezar |
+| 3. Página del cliente (`/m/[token]`) | Código completo, SQL probado contra Supabase y 85 tests; falta probarla en un celular real |
+| 4 a 6 | Sin empezar |
 
 ## Qué quedó
 
@@ -48,6 +49,17 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
   - **Sin probar todavía en un navegador a 390 px**: la VM no puede iniciar sesión en el sitio. Falta confirmar en el celular el botón de atrás y la hoja impresa.
 - Reglas asumidas: el pago por platos del salonero usa el mismo cálculo proporcional que el cliente; el pago por monto es libre hasta el saldo; con partes iguales activas no se pueden cambiar platos ni cobrar por platos (sí por monto).
 
+**Fase 3 (página del cliente)**
+- Migraciones `20261009000005_client_flow.sql` y `20261009000006_client_state_order.sql` (ya aplicadas en Supabase): `client_state`, `client_reserve_items`, `client_split_item`, `client_start_split`, `client_create_payment`, `client_cancel_payment`, `panel_unsplit_item`. Escenario completo en `supabase/tests/client_flow.sql` (corrido contra la base, todos los valores esperados coinciden).
+- `/m/[token]`: la cuenta se ve de una (se dibuja en el servidor, sin pedir datos). Encabezado con restaurante, mesa y "No necesita descargar nada ni registrarse". Tres modos: pagar todo, mis platos (reserva de 3 minutos con cronómetro, "Dividir" un plato entre N) y partes iguales. Propina opcional, datos de factura colapsados, nota de ajuste ("Ya se pagaron ₡X por otro medio; su parte se ajustó."), cuatro métodos. Se actualiza cada 3 s con la pestaña visible y avisa si otra persona pagó o apartó lo que había elegido.
+- Mismo celular que inicia un pago nuevo: se cancela su pago pendiente anterior y sus propias reservas no lo bloquean.
+- `/checkout-demo/[paymentId]` (provisional): muestra monto, propina y método; "Volver" cancela el pago pendiente y libera lo apartado. El botón "Pagar" está deshabilitado hasta la fase 4.
+- Cuenta pagada o cerrada: "Esta cuenta ya está pagada. ¡Gracias!". Si el salonero abre otra cuenta en la mesa, la página pasa sola a la nueva.
+- Panel: "Deshacer división" en los platos que el cliente dividió, mientras ninguna parte esté pagada ni en pago.
+- Proveedor de pago: interfaz en `lib/payments/` con proveedor mock (firma HMAC del webhook). El webhook y el pago simulado son de la fase 4.
+- Confirmado en SQL (transacción revertida): `reset_demo()` borra pagos (incluidos pendientes) y reservas; queda 1 cuenta abierta en la Mesa 4 con total ₡48 585.
+- **Sin probar en un navegador real a 390 px**: la VM no puede iniciar sesión en el sitio (el PIN no lo escribe Claude).
+
 ## Decisiones tomadas
 
 - Líneas separadas por cantidad (3 imperiales = 3 líneas), agrupadas visualmente en el panel.
@@ -77,6 +89,6 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 
 ## Siguiente paso
 
-1. Mateo hace `git push` del commit de la fase 2; Claude despliega y prueba `/panel` de punta a punta (PIN, abrir cuenta, pagos, QR, reinicios) en celular y tablet, y anota el resultado acá.
-2. Fase 3: página del cliente `/m/[token]` (ver cuenta, pagar todo / mis platos / partes iguales, línea que explica el ajuste cuando ya hubo pagos por otro medio).
-3. Fase 4: proveedor de pago mock, webhook `/api/webhooks/[provider]` que llama a `confirm_payment`, y verificar Realtime.
+1. Mateo hace `git push` del commit de la fase 3 y prueba `/m/<token>` en el celular (ver "Cómo probar" en la respuesta de cierre de fase) y anota qué falla.
+2. Fase 4: `/checkout-demo` con botón "Pagar" (1,5 s de espera y opción "Pago rechazado"), webhook `/api/webhooks/[provider]` que llama a `confirm_payment`, recibo con línea de factura, y verificar Realtime.
+3. Fases 5 y 6 según SPEC.md.

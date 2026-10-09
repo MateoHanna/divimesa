@@ -81,6 +81,10 @@ export function TableDetail({
                         onClick={() => setPrice({ id: freeId, name: g.name, price: g.unitPrice })}><PencilIcon /></Button>
                       <Button variant="ghost" size="icon" aria-label={`Quitar una unidad de ${g.name}`} disabled={busy}
                         onClick={() => act(`/api/panel/items/${freeId}`, "DELETE")}><MinusIcon /></Button>
+                      {g.splitGroupId ? (
+                        <Button variant="outline" size="sm" disabled={busy} aria-label={`Deshacer la división de ${g.name}`}
+                          onClick={() => act(`/api/panel/items/${freeId}/unsplit`, "POST")}>Deshacer división</Button>
+                      ) : null}
                     </>
                   ) : null}
                 </li>

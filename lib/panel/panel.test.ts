@@ -189,12 +189,19 @@ describe("estado del panel", () => {
 });
 
 describe("agrupar líneas", () => {
-  const l = (id: string, o: Partial<PanelLine> = {}): PanelLine => ({ id, name: "Casado", unitPrice: 5500, status: "pending", reserved: false, ...o });
+  const l = (id: string, o: Partial<PanelLine> = {}): PanelLine => ({ id, name: "Casado", unitPrice: 5500, status: "pending", reserved: false, splitGroupId: null, ...o });
   it("junta iguales y separa por estado o precio", () => {
     const g = groupLines([l("a"), l("b", { reserved: true }), l("c", { status: "paid" }), l("d", { unitPrice: 4000 })]);
     expect(g.map((x) => [x.count, x.status, x.unitPrice, x.reservedCount])).toEqual([
       [2, "pending", 5500, 1], [1, "paid", 5500, 0], [1, "pending", 4000, 0],
     ]);
     expect(g[0].ids).toEqual(["a", "b"]);
+  });
+
+  it("no junta partes de un plato dividido con platos sueltos y conserva el id del grupo", () => {
+    const g = groupLines([l("a", { name: "Nachos (1/2)", unitPrice: 2000, splitGroupId: "g1" }), l("b", { name: "Nachos (1/2)", unitPrice: 2000 })]);
+    expect(g).toHaveLength(2);
+    expect(g[0].splitGroupId).toBe("g1");
+    expect(g[1].splitGroupId).toBeNull();
   });
 });

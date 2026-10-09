@@ -41,7 +41,7 @@ export async function loadPanelState(now: Date = new Date()): Promise<PanelState
   let paymentItems: PaymentItemRow[] = [];
   if (billIds.length > 0) {
     const [i, p] = await Promise.all([
-      db.from("bill_items").select("id,bill_id,name,unit_price,quantity,status,reserved_until,created_at")
+      db.from("bill_items").select("id,bill_id,name,unit_price,quantity,status,reserved_until,created_at,split_group_id")
         .in("bill_id", billIds).returns<ItemRow[]>(),
       db.from("payments").select("id,bill_id,amount,tip_amount,overpaid_amount,method,source,kind,status,paid_at,created_at")
         .in("bill_id", billIds).returns<PaymentRow[]>(),
