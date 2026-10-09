@@ -8,7 +8,8 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 | --- | --- |
 | 0. Proyecto, Supabase, Tailwind, shadcn, deploy | Completa, salvo vincular el repo al proyecto de Vercel para que cada push despliegue solo |
 | 1. Migraciones, seed, `lib/money.ts` | Completa |
-| 2 a 6 | Sin empezar |
+| 2. Panel del salonero (`/panel`) | Código completo y probado en lógica y SQL; falta la prueba de punta a punta en el sitio desplegado |
+| 3 a 6 | Sin empezar |
 
 ## Qué quedó
 
@@ -30,7 +31,16 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 - `tests/fixtures/totals.json`: 11 casos compartidos entre TypeScript y SQL. Verificado: `calc_totals` en Supabase da lo mismo en los 11.
 - `supabase/migrations/`: 0001 (esquema), 0002 (funciones y Realtime) y 0003 (`reset_demo`, `factory_reset`). La 0001 y la 0002 se aplicaron con el conector. **La 0003 la aplicó Mateo a mano en el SQL Editor de Supabase** (el conector la canceló dos veces por su confirmación de SQL que borra datos), y también corrió `seed.sql` a mano. Por eso la lista de migraciones del conector no la muestra.
 - Verificado con el conector el 2026-10-09: 1 restaurante, 15 platos, 8 mesas con tokens distintos, 1 cuenta abierta (Mesa 4, 10 líneas). `bill_totals`: subtotal 39500, servicio 3950, IVA 5135, total 48585, pagado 0, saldo 48585. `anon` no puede ejecutar ninguna función.
-- Estado actual: lint, typecheck y 43 tests pasan.
+
+**Fase 2 (panel del salonero)**
+- Migración `0004_panel_payments.sql`, aplicada con el conector (sin borrados). Funciones: `calc_items_amount`, `finish_if_paid`, `settle_payment`, `confirm_payment` (adelantada de la fase 4: idempotente por `provider_ref`, nunca cobra más que el saldo, guarda el sobrante en `overpaid_amount`), `record_panel_payment`, `panel_open_bill`, `panel_add_items`, `lock_editable_item`, `panel_void_item`, `panel_set_price`, `panel_cancel_split`, `panel_close_bill`, `panel_release_table`. Solo `service_role` las ejecuta. Los errores salen como código en el mensaje (`amount_exceeds_balance`, `item_reserved`, `total_below_paid`...).
+- `supabase/tests/panel_payments.sql`: escenario A a K en una transacción que termina con error a propósito (no deja datos). Corrido contra Supabase: todos los valores dieron lo esperado (totales 16000/1600/2080/19680, pago por platos 10093, confirmación repetida sin doble cobro, sobrante 1235, no se puede bajar el total por debajo de lo pagado, líneas reservadas protegidas).
+- Seguridad: cookie `panel_session` firmada con HMAC (clave: la service role key; el mensaje incluye el PIN, así que cambiar `PANEL_PIN` cierra todas las sesiones), httpOnly, SameSite=Lax, `secure` en https, 7 días. PIN comparado en tiempo constante, retraso al fallar y límite de 5 intentos por minuto por IP (en memoria; en serverless es débil). Toda ruta `/api/panel/*` verifica cookie y que el `Origin` sea el mismo host. `/panel/qr/[mesa]` también pide la cookie y no consulta el token sin ella. El estado que recibe el navegador no incluye tokens de QR.
+- QR: codifica `tableUrl(qr_token)` = `${APP_URL}/m/<token>`, nunca el número de mesa. **`/m/<token>` no existe hasta la fase 3: escanear hoy da 404.**
+- API: `GET /api/panel/state`, `POST /login`, `/logout`, `/bills`, `/bills/[id]/items|payments|cancel-split|close|release`, `PATCH|DELETE /items/[id]`, `POST /demo/reset`, `/demo/factory-reset`. Cada mutación devuelve el estado fresco.
+- UI: `components/panel/*`. Grilla con color y texto por estado (Libre, Abierta, Pago parcial, Pagada); en celular el detalle ocupa toda la pantalla, en tablet es una columna lateral. Líneas agrupadas ("2 × Casado"), quitar una unidad, cambiar el precio de una línea, agregar platos con cantidad, cobrar por monto o por platos (datáfono o efectivo), lista de pagos, liberar mesa (solo si está pagada), cerrar cuenta con saldo (con confirmación), cancelar partes iguales, menú con los dos reinicios con confirmación. Consulta cada 3 s solo con la pestaña visible; pitido y vibración con cada pago nuevo y aviso "Mesa N pagó completo" (el sonido se activa con el primer toque).
+- Tests: `lib/panel/panel.test.ts` (sesión, PIN, limitador, errores, estado de mesas, agrupación y el monto por platos con `tests/fixtures/items-amount.json`, que también se verificó en SQL). Total 64 tests, lint y typecheck limpios, `next build` ok.
+- Reglas asumidas: el pago por platos del salonero usa el mismo cálculo proporcional que el cliente; el pago por monto es libre hasta el saldo; con partes iguales activas no se pueden cambiar platos ni cobrar por platos (sí por monto).
 
 ## Decisiones tomadas
 
@@ -61,4 +71,6 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 
 ## Siguiente paso
 
-Fase 2 (panel del salonero): acceso con PIN, grilla de mesas, abrir cuenta, agregar y quitar platos, QR con `tableUrl()`, pagos manuales, botones "Reiniciar demo" y "Restaurar valores de fábrica", y consulta cada 3 s.
+1. Mateo hace `git push` del commit de la fase 2; Claude despliega y prueba `/panel` de punta a punta (PIN, abrir cuenta, pagos, QR, reinicios) en celular y tablet, y anota el resultado acá.
+2. Fase 3: página del cliente `/m/[token]` (ver cuenta, pagar todo / mis platos / partes iguales, línea que explica el ajuste cuando ya hubo pagos por otro medio).
+3. Fase 4: proveedor de pago mock, webhook `/api/webhooks/[provider]` que llama a `confirm_payment`, y verificar Realtime.

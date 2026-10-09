@@ -1,0 +1,8 @@
+[
+  { "name": "un plato de dos, sin pagos previos", "selected": [5500], "pending": [5500, 2500], "balance": 9840, "expected": 6765 },
+  { "name": "todos los platos pendientes = saldo exacto", "selected": [5500, 2500], "pending": [5500, 2500], "balance": 4000, "expected": 4000 },
+  { "name": "dos casados de cuatro platos con ₡5 000 ya pagados", "selected": [5500, 5500], "pending": [5500, 5500, 2500, 2500], "balance": 14680, "expected": 10093 },
+  { "name": "empate se redondea hacia arriba", "selected": [1], "pending": [1, 1], "balance": 5, "expected": 3 },
+  { "name": "nunca supera el saldo", "selected": [9000], "pending": [9000, 1000], "balance": 100, "expected": 90 },
+  { "name": "saldo cero", "selected": [1000], "pending": [1000, 1000], "balance": 0, "expected": 0 }
+]
