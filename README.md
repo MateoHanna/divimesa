@@ -1,33 +1,36 @@
-# Demo: pago y división de cuenta por QR
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Demo para restaurantes de Costa Rica. Cada mesa tiene un QR; el cliente ve su cuenta, elige qué pagar y paga desde el celular. El salonero ve el saldo bajar en vivo. Los pagos son simulados, pero la arquitectura es la del producto real.
+## Getting Started
 
-La especificación completa está en `SPEC.md`. El estado del trabajo y las decisiones tomadas están en `PROGRESO.md`.
-
-## Correr en local
-
-Requisitos: Node 22 o superior.
+First, run the development server:
 
 ```bash
-npm install
-cp .env.example .env.local   # y completar los valores
 npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-Abrir http://localhost:3000. Para comprobar la conexión con Supabase: http://localhost:3000/api/health
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Variables de entorno
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-Ver `.env.example`. `SUPABASE_SERVICE_ROLE_KEY` es secreta: solo va en el servidor y en las variables de Vercel, nunca con prefijo `NEXT_PUBLIC_`.
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Scripts
+## Learn More
 
-| Comando | Qué hace |
-| --- | --- |
-| `npm run dev` | Servidor de desarrollo |
-| `npm run build` | Build de producción |
-| `npm run lint` | ESLint |
-| `npm run typecheck` | TypeScript sin emitir |
-| `npm test` | Tests con Vitest |
+To learn more about Next.js, take a look at the following resources:
 
-Las secciones de migraciones, deploy y cambio de proveedor de pago se completan en la fase 5.
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

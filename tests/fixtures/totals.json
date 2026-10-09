@@ -1,0 +1,13 @@
+[
+  { "name": "sin impuestos incluidos, cuenta de la demo", "items_sum": 39000, "service_rate": 0.10, "vat_rate": 0.13, "prices_include_taxes": false, "expected": { "subtotal": 39000, "service": 3900, "vat": 5070, "total": 47970 } },
+  { "name": "un colon", "items_sum": 1, "service_rate": 0.10, "vat_rate": 0.13, "prices_include_taxes": false, "expected": { "subtotal": 1, "service": 0, "vat": 0, "total": 1 } },
+  { "name": "empate a la mitad redondea hacia arriba (0,5 y 0,65)", "items_sum": 5, "service_rate": 0.10, "vat_rate": 0.13, "prices_include_taxes": false, "expected": { "subtotal": 5, "service": 1, "vat": 1, "total": 7 } },
+  { "name": "empate a la mitad (1234,5)", "items_sum": 12345, "service_rate": 0.10, "vat_rate": 0.13, "prices_include_taxes": false, "expected": { "subtotal": 12345, "service": 1235, "vat": 1605, "total": 15185 } },
+  { "name": "plato de 2000", "items_sum": 2000, "service_rate": 0.10, "vat_rate": 0.13, "prices_include_taxes": false, "expected": { "subtotal": 2000, "service": 200, "vat": 260, "total": 2460 } },
+  { "name": "plato de 9500", "items_sum": 9500, "service_rate": 0.10, "vat_rate": 0.13, "prices_include_taxes": false, "expected": { "subtotal": 9500, "service": 950, "vat": 1235, "total": 11685 } },
+  { "name": "precios con impuestos incluidos", "items_sum": 11300, "service_rate": 0.10, "vat_rate": 0.13, "prices_include_taxes": true, "expected": { "subtotal": 9187, "service": 919, "vat": 1194, "total": 11300 } },
+  { "name": "impuestos incluidos con redondeo", "items_sum": 12345, "service_rate": 0.10, "vat_rate": 0.13, "prices_include_taxes": true, "expected": { "subtotal": 10037, "service": 1004, "vat": 1304, "total": 12345 } },
+  { "name": "sin servicio", "items_sum": 10000, "service_rate": 0, "vat_rate": 0.13, "prices_include_taxes": false, "expected": { "subtotal": 10000, "service": 0, "vat": 1300, "total": 11300 } },
+  { "name": "tasas en cero con impuestos incluidos", "items_sum": 5000, "service_rate": 0, "vat_rate": 0, "prices_include_taxes": true, "expected": { "subtotal": 5000, "service": 0, "vat": 0, "total": 5000 } },
+  { "name": "servicio con tres decimales", "items_sum": 10000, "service_rate": 0.125, "vat_rate": 0.13, "prices_include_taxes": false, "expected": { "subtotal": 10000, "service": 1250, "vat": 1300, "total": 12550 } }
+]
