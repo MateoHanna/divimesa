@@ -6,7 +6,7 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 
 | Fase | Estado |
 | --- | --- |
-| 0. Proyecto, Supabase, Tailwind, shadcn, deploy | Código listo. Falta crear el repo en GitHub, empujar y desplegar |
+| 0. Proyecto, Supabase, Tailwind, shadcn, deploy | Completa, salvo vincular el repo al proyecto de Vercel para que cada push despliegue solo |
 | 1. Migraciones, seed, `lib/money.ts` | Completa |
 | 2 a 6 | Sin empezar |
 
@@ -19,6 +19,9 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 - `lib/env.ts` (validación con zod), `lib/supabase/server.ts` (service role), `lib/supabase/browser.ts` (solo Realtime), `/api/health`, portada simple.
 - Supabase `demo-qr`: ref `xauhctelzpymsafxlgtj`, us-east-1, URL https://xauhctelzpymsafxlgtj.supabase.co
 - Vercel `demo-qr`: id `prj_PITlYGG5Kg0medcKxA6syf04DMKt`, dominio de producción **https://demo-qr-steel.vercel.app**, sin repo conectado todavía. Tiene las variables públicas y `PAYMENT_PROVIDER=mock`. La cuenta de Vercel ya tiene GitHub conectado (usuario `MateoHanna`).
+- Deploy de producción (2026-10-09): `dpl_CiwFEp61SQJiT73kRnxy18Ct4ZgW`, commit `c996adf`, en https://demo-qr-steel.vercel.app. `/api/health` responde `ok: true`, Supabase 200 (unos 400 ms) y `service_role_key_set: true`. La portada carga sin login.
+- Repo: https://github.com/MateoHanna/demo-qr (privado, rama `main`), creado y subido por Mateo.
+- Vercel: protección de login (`ssoProtection`) apagada. Variables cargadas: públicas y `PAYMENT_PROVIDER` (todos los destinos), `APP_URL=https://demo-qr-steel.vercel.app` (production y preview), y `SUPABASE_SERVICE_ROLE_KEY`, `PANEL_PIN`, `MOCK_WEBHOOK_SECRET` como sensibles (solo production, las cargó Mateo).
 - `.env.local` (no se sube a git) ya tiene `SUPABASE_SERVICE_ROLE_KEY`, `PANEL_PIN` y `MOCK_WEBHOOK_SECRET` (64 caracteres, generado por Claude). `APP_URL` local es `http://localhost:3000`.
 
 **Fase 1**
@@ -46,23 +49,15 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 
 ## Notas de entorno
 
-- La VM de Claude bloquea `supabase.co`, `ui.shadcn.com`, Google Fonts y GitHub con token, y no tiene `gh` (el `gh` autenticado de Mateo está en su Windows y la VM no lo alcanza). Por eso `shadcn init` no corrió, `/api/health` solo se puede verificar ya desplegado, y el repo de GitHub lo crea Mateo desde su terminal.
+- La VM de Claude bloquea `supabase.co`, `ui.shadcn.com`, Google Fonts y GitHub con token, y no tiene `gh` (el `gh` autenticado de Mateo está en su Windows y la VM no lo alcanza). Por eso `shadcn init` no corrió y `/api/health` solo se puede verificar ya desplegado. El repo de GitHub lo creó Mateo desde su terminal.
 - `node_modules` vive en una copia local de la VM (`~/work/demo-qr`); el código se sincroniza a esta carpeta. Los `node_modules` de Linux no sirven en Windows: en tu máquina corré `npm install`.
 
 ## Pendientes
 
-- [ ] **Crear el repo privado y empujar** (lo hace Mateo, ver comando abajo). Después Claude lo conecta a Vercel, carga las variables secretas y despliega.
-- [ ] Variables de Vercel que faltan: `SUPABASE_SERVICE_ROLE_KEY`, `PANEL_PIN`, `MOCK_WEBHOOK_SECRET` (como sensibles) y `APP_URL=https://demo-qr-steel.vercel.app`.
-- [ ] Vercel tiene activa la protección de login en los deploys (`ssoProtection`). Apagarla al desplegar, o los clientes no podrán abrir el QR.
-- [ ] Comprobar `/api/health` ya desplegado.
+- [ ] **Vincular el repo al proyecto de Vercel** (auto-deploy en cada push). Las herramientas de Claude no pueden reconectar un proyecto existente: en Vercel, proyecto `demo-qr`, Settings, Git, Connect Git Repository, elegir `MateoHanna/demo-qr`. Comprobación: el siguiente `git push` debería crear un deploy de producción solo. Hasta entonces los deploys se hacen desde Claude con el conector (`create_deployment` con `gitSource` de la rama `main`).
+- [ ] Las tres claves secretas están en Vercel solo para **production**. Los deploys de preview no las tienen (no importa para `/api/health`, pero sí para el panel y los pagos). Si se usan previews, agregarles también esos destinos.
 - [ ] Mejorar `/api/health` para que consulte una tabla (hoy solo verifica la conexión con Supabase).
 - [ ] **Realtime sin verificar.** `realtime.messages` no tenía particiones (proyecto nuevo), así que `realtime.send` falla en silencio. Probablemente se crean cuando conecta el primer cliente. Verificar en la fase 4 con un navegador real.
-
-Comando para el repo (desde esta carpeta, con `gh` autenticado):
-
-```
-gh repo create demo-qr --private --source . --remote origin --push
-```
 
 ## Siguiente paso
 
