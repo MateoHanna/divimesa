@@ -22,7 +22,7 @@ export function PaymentDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   busy: boolean;
-  onPay: (body: { method: Method } & ({ kind: "amount"; amount: number } | { kind: "items"; itemIds: string[] })) => Promise<boolean>;
+  onPay: (body: { method: Method } & ({ kind: "amount"; amount: number } | { kind: "items"; itemIds: string[] }), shownAmount: number) => Promise<boolean>;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -119,11 +119,12 @@ function PaymentForm({
       )}
 
       <Button size="xl" disabled={!canPay || busy} onClick={async () => {
-        const ok = await onPay(kind === "amount" ? { method, kind, amount } : { method, kind, itemIds: selectedIds });
+        const ok = await onPay(kind === "amount" ? { method, kind, amount } : { method, kind, itemIds: selectedIds }, payAmount);
         if (ok) onOpenChange(false);
       }}>
         Cobrar {canPay ? formatCRC(payAmount) : ""} con {method === "cash" ? "efectivo" : "datáfono"}
       </Button>
+      <Button size="lg" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
     </DialogContent>
   );
 }

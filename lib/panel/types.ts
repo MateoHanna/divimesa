@@ -31,6 +31,8 @@ export interface PanelPayment {
   source: "qr" | "panel";
   kind: "full" | "items" | "equal_share" | "amount";
   paidAt: string;
+  /** Platos que cubrió el pago (solo en pagos por platos), agrupados por nombre. */
+  items: { name: string; count: number }[];
 }
 
 export interface PanelSplit {

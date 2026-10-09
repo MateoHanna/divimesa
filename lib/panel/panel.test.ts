@@ -150,6 +150,31 @@ describe("estado del panel", () => {
     expect(s.tables[0].bill!.lines.map((l) => l.reserved)).toEqual([true, false]);
   });
 
+  it("muestra qué platos cubrió un pago por platos", () => {
+    const s = buildPanelState({
+      ...base,
+      payments: [pay({ id: "pi", kind: "items", amount: 6765 }), pay({ id: "pa", kind: "amount" })],
+      paymentItems: [
+        { payment_id: "pi", bill_item_id: "i1" },
+        { payment_id: "pi", bill_item_id: "i2" },
+        { payment_id: "pa", bill_item_id: "i1" }, // un pago por monto nunca lista platos
+      ],
+    });
+    const byId = Object.fromEntries(s.tables[0].bill!.payments.map((p) => [p.id, p.items]));
+    expect(byId.pi).toEqual([{ name: "Casado de pollo", count: 1 }, { name: "Imperial", count: 1 }]);
+    expect(byId.pa).toEqual([]);
+  });
+
+  it("agrupa platos repetidos de un pago", () => {
+    const s = buildPanelState({
+      ...base,
+      items: [item("i1"), item("i2"), item("i3", { name: "Imperial", unit_price: 2500 })],
+      payments: [pay({ id: "pi", kind: "items" })],
+      paymentItems: ["i1", "i2", "i3"].map((id) => ({ payment_id: "pi", bill_item_id: id })),
+    });
+    expect(s.tables[0].bill!.payments[0].items).toEqual([{ name: "Casado de pollo", count: 2 }, { name: "Imperial", count: 1 }]);
+  });
+
   it("detecta mesas que pasaron a pagadas y pagos nuevos", () => {
     const prev = buildPanelState(base);
     const next = buildPanelState({

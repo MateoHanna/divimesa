@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOutIcon, MoreVerticalIcon, RotateCcwIcon } from "lucide-react";
+import Link from "next/link";
+import { LogOutIcon, MoreVerticalIcon, PrinterIcon, RotateCcwIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -12,6 +13,7 @@ import { ConfirmDialog } from "./confirm-dialog";
 import { enableAudio } from "./sound";
 import { TableDetail } from "./table-detail";
 import { TableGrid } from "./table-grid";
+import { useBackLayer } from "./use-back-layer";
 import { usePanel } from "./use-panel";
 
 export function PanelApp() {
@@ -29,6 +31,8 @@ export function PanelApp() {
   }, []);
 
   const selected = state?.tables.find((t) => t.id === selectedId) ?? null;
+  // El botón de atrás del celular vuelve de la mesa a la grilla.
+  useBackLayer(!!selected, () => setSelectedId(null));
 
   async function logout() {
     await fetch("/api/panel/logout", { method: "POST" });
@@ -81,6 +85,9 @@ export function PanelApp() {
 
       <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
         <DialogContent title="Menú del panel" description="Las dos opciones de reinicio piden confirmación.">
+          <Button variant="outline" size="lg" asChild>
+            <Link href="/panel/qr"><PrinterIcon /> Imprimir QR de todas las mesas</Link>
+          </Button>
           <Button variant="outline" size="lg" onClick={() => { setMenuOpen(false); setReset("demo"); }}>
             <RotateCcwIcon /> Reiniciar demo
           </Button>

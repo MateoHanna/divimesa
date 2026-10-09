@@ -55,6 +55,7 @@ export interface PaymentRow {
   paid_at: string | null;
   created_at: string;
 }
+export interface PaymentItemRow { payment_id: string; bill_item_id: string }
 export interface MenuRow { id: string; name: string; category: string; price: number; sort_order: number }
 
 export function tableStatus(bill: Pick<PanelBill, "status" | "totals"> | null): TableStatus {
@@ -69,7 +70,18 @@ export function buildBill(
   payments: PaymentRow[],
   restaurant: RestaurantRow,
   now: Date,
+  paymentItems: PaymentItemRow[] = [],
 ): PanelBill {
+  const nameById = new Map(items.map((i) => [i.id, i.name]));
+  const coveredBy = (paymentId: string) => {
+    const counts = new Map<string, number>();
+    for (const pi of paymentItems) {
+      if (pi.payment_id !== paymentId) continue;
+      const name = nameById.get(pi.bill_item_id);
+      if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+    return [...counts.entries()].map(([name, count]) => ({ name, count }));
+  };
   const visible = items.filter((i) => i.status !== "void");
   const lines: PanelLine[] = visible
     .slice()
@@ -111,6 +123,7 @@ export function buildBill(
         source: p.source,
         kind: p.kind,
         paidAt: p.paid_at as string,
+        items: p.kind === "items" ? coveredBy(p.id) : [],
       })),
   };
 }
@@ -121,6 +134,7 @@ export function buildPanelState(input: {
   bills: BillRow[];
   items: ItemRow[];
   payments: PaymentRow[];
+  paymentItems?: PaymentItemRow[];
   menu: MenuRow[];
   now: Date;
 }): PanelState {
@@ -140,6 +154,7 @@ export function buildPanelState(input: {
             input.payments.filter((p) => p.bill_id === row.id),
             restaurant,
             now,
+            input.paymentItems ?? [],
           )
         : null;
       return { id: t.id, number: t.number, status: tableStatus(bill), bill };

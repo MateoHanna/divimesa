@@ -1,6 +1,6 @@
 import { getAdminClient } from "@/lib/supabase/server";
 
-import { buildPanelState, type BillRow, type ItemRow, type MenuRow, type PaymentRow, type RestaurantRow, type TableRow } from "./state";
+import { buildPanelState, type BillRow, type ItemRow, type MenuRow, type PaymentItemRow, type PaymentRow, type RestaurantRow, type TableRow } from "./state";
 import type { PanelState } from "./types";
 
 function check<T>(res: { data: T | null; error: { message: string } | null }): T {
@@ -38,6 +38,7 @@ export async function loadPanelState(now: Date = new Date()): Promise<PanelState
   const billIds = bills.map((b) => b.id);
   let items: ItemRow[] = [];
   let payments: PaymentRow[] = [];
+  let paymentItems: PaymentItemRow[] = [];
   if (billIds.length > 0) {
     const [i, p] = await Promise.all([
       db.from("bill_items").select("id,bill_id,name,unit_price,quantity,status,reserved_until,created_at")
@@ -47,8 +48,14 @@ export async function loadPanelState(now: Date = new Date()): Promise<PanelState
     ]);
     items = check(i);
     payments = check(p);
+    const itemPaymentIds = payments.filter((x) => x.kind === "items" && x.status === "paid").map((x) => x.id);
+    if (itemPaymentIds.length > 0) {
+      paymentItems = check(
+        await db.from("payment_items").select("payment_id,bill_item_id").in("payment_id", itemPaymentIds).returns<PaymentItemRow[]>(),
+      );
+    }
   }
-  return buildPanelState({ restaurant, tables: tableRows, bills, items, payments, menu: check(menu), now });
+  return buildPanelState({ restaurant, tables: tableRows, bills, items, payments, paymentItems, menu: check(menu), now });
 }
 
 /** Token de QR de una mesa por número. Solo para la página protegida del QR. */
@@ -59,4 +66,17 @@ export async function loadTableToken(number: number): Promise<{ token: string; n
   if (!data) return null;
   const r = Array.isArray(data.restaurants) ? data.restaurants[0] : data.restaurants;
   return { token: data.qr_token, number: data.number, restaurant: r?.name ?? "" };
+}
+
+/** Todas las mesas con su token, para la hoja de QR imprimible. Solo para páginas protegidas. */
+export async function loadAllTableTokens(): Promise<{ restaurant: string; tables: { number: number; token: string }[] }> {
+  const db = getAdminClient();
+  const r = check(
+    await db.from("restaurants").select("id,name").order("created_at").limit(1).single<{ id: string; name: string }>(),
+  );
+  const tables = check(
+    await db.from("tables").select("number,qr_token").eq("restaurant_id", r.id).order("number")
+      .returns<{ number: number; qr_token: string }[]>(),
+  );
+  return { restaurant: r.name, tables: tables.map((t) => ({ number: t.number, token: t.qr_token })) };
 }

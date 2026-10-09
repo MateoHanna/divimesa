@@ -64,7 +64,7 @@ export function AddItemsDialog({
             </section>
           ))}
         </div>
-        <Button size="lg" variant="outline" onClick={() => onOpenChange(false)}>Listo</Button>
+        <Button size="lg" onClick={() => onOpenChange(false)}>Listo, volver a la mesa</Button>
       </DialogContent>
     </Dialog>
   );

@@ -4,9 +4,14 @@ import * as React from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { XIcon } from "lucide-react";
 
+import { useBackLayer } from "@/components/panel/use-back-layer";
 import { cn } from "@/lib/utils";
 
-const Dialog = DialogPrimitive.Root;
+/** El botón de atrás del celular cierra la ventana de arriba (ver use-back-layer). */
+function Dialog({ open, onOpenChange, ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
+  useBackLayer(!!open, () => onOpenChange?.(false));
+  return <DialogPrimitive.Root open={open} onOpenChange={onOpenChange} {...props} />;
+}
 const DialogClose = DialogPrimitive.Close;
 
 /** Ventana modal: centrada en tablet y como hoja desde abajo en celular. */
@@ -29,7 +34,7 @@ function DialogContent({
         )}
         {...props}
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className="sticky top-0 z-10 -mx-5 -mt-5 flex items-start justify-between gap-3 border-b bg-background px-5 pt-5 pb-3">
           <div>
             <DialogPrimitive.Title className="text-lg font-semibold">{title}</DialogPrimitive.Title>
             {description ? (
@@ -38,8 +43,8 @@ function DialogContent({
               <DialogPrimitive.Description className="sr-only">{title}</DialogPrimitive.Description>
             )}
           </div>
-          <DialogPrimitive.Close className="-mt-1 -mr-1 rounded-full p-2 text-muted-foreground hover:bg-accent" aria-label="Cerrar">
-            <XIcon className="size-5" />
+          <DialogPrimitive.Close className="-mt-1 -mr-2 flex size-11 shrink-0 items-center justify-center rounded-full border bg-background text-foreground hover:bg-accent" aria-label="Cerrar">
+            <XIcon className="size-6" />
           </DialogPrimitive.Close>
         </div>
         {children}

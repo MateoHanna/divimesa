@@ -42,6 +42,7 @@ function PriceForm({
       <Button size="xl" disabled={!valid || busy} onClick={async () => { if (await onSave(target.id, price)) onClose(); }}>
         Guardar {valid ? formatCRC(price) : ""}
       </Button>
+      <Button size="lg" variant="outline" onClick={onClose}>Cancelar</Button>
     </DialogContent>
   );
 }

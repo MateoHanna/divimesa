@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeftIcon, MinusIcon, PencilIcon, QrCodeIcon } from "lucide-react";
+import { ArrowLeftIcon, MinusIcon, MoreVerticalIcon, PencilIcon, QrCodeIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import type { PanelTable } from "@/lib/panel/types";
 import { cn } from "@/lib/utils";
 
 import { AddItemsDialog } from "./add-items-dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ConfirmDialog } from "./confirm-dialog";
 import { PaymentDialog } from "./payment-dialog";
 import { PriceDialog } from "./price-dialog";
@@ -27,6 +28,7 @@ export function TableDetail({
   const [paying, setPaying] = useState(false);
   const [price, setPrice] = useState<{ id: string; name: string; price: number } | null>(null);
   const [confirm, setConfirm] = useState<null | "close" | "release" | "split">(null);
+  const [options, setOptions] = useState(false);
   const bill = table.bill;
   const time = (iso: string) => new Date(iso).toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit" });
 
@@ -36,16 +38,14 @@ export function TableDetail({
         <Button variant="ghost" size="icon" onClick={onBack} aria-label="Volver a las mesas" className="md:hidden"><ArrowLeftIcon /></Button>
         <h2 className="text-2xl font-bold">Mesa {table.number}</h2>
         <Badge variant="outline" className={cn("ml-auto text-sm", STATUS_CLASS[table.status])}>{STATUS_LABEL[table.status]}</Badge>
+        {bill?.status === "open" ? (
+          <Button variant="ghost" size="icon" aria-label="Más opciones de la mesa" onClick={() => setOptions(true)}><MoreVerticalIcon /></Button>
+        ) : null}
       </header>
 
-      <div className="grid grid-cols-2 gap-2">
-        <Button variant="outline" size="lg" asChild>
-          <Link href={`/panel/qr/${table.number}`}><QrCodeIcon /> Mostrar QR grande</Link>
-        </Button>
-        {!bill ? (
-          <Button size="lg" disabled={busy} onClick={() => act("/api/panel/bills", "POST", { tableId: table.id })}>Abrir cuenta</Button>
-        ) : null}
-      </div>
+      {!bill ? (
+        <Button size="xl" disabled={busy} onClick={() => act("/api/panel/bills", "POST", { tableId: table.id })}>Abrir cuenta</Button>
+      ) : null}
 
       {bill ? (
         <>
@@ -101,7 +101,6 @@ export function TableDetail({
             <div className="grid grid-cols-2 gap-2">
               {!bill.split ? <Button size="lg" variant="outline" onClick={() => setAdding(true)}>Agregar platos</Button> : <span />}
               <Button size="lg" disabled={bill.totals.balance <= 0} onClick={() => setPaying(true)}>Registrar pago</Button>
-              <Button size="lg" variant="outline" className="col-span-2 text-destructive" onClick={() => setConfirm("close")}>Cerrar cuenta sin cobrar el saldo</Button>
             </div>
           ) : (
             <Button size="xl" disabled={busy} onClick={() => setConfirm("release")}>Liberar mesa</Button>
@@ -117,6 +116,9 @@ export function TableDetail({
                   <li key={p.id} className="flex items-center justify-between gap-2 p-3 text-sm">
                     <div>
                       <p className="font-medium">{METHOD_LABEL[p.method] ?? p.method} · {KIND_LABEL[p.kind] ?? p.kind}</p>
+                      {p.items.length > 0 ? (
+                        <p>{p.items.map((i) => `${i.count > 1 ? `${i.count} × ` : ""}${i.name}`).join(", ")}</p>
+                      ) : null}
                       <p className="text-muted-foreground">
                         {time(p.paidAt)} · {p.source === "qr" ? "Por QR" : "Salonero"}
                         {p.tip ? ` · propina ${formatCRC(p.tip)}` : ""}
@@ -130,10 +132,18 @@ export function TableDetail({
             )}
           </section>
 
+          <Dialog open={options} onOpenChange={setOptions}>
+            <DialogContent title={`Opciones · Mesa ${table.number}`} description="Acciones poco frecuentes de esta cuenta.">
+              <Button variant="outline" size="lg" className="text-destructive"
+                onClick={() => { setOptions(false); setConfirm("close"); }}>Cerrar cuenta sin cobrar el saldo</Button>
+              <p className="-mt-2 text-sm text-muted-foreground">Para cuando el cliente se fue o la cuenta se anula. Pide confirmación.</p>
+            </DialogContent>
+          </Dialog>
+
           <AddItemsDialog open={adding} onOpenChange={setAdding} menu={menu} busy={busy}
             onAdd={(menuItemId, quantity) => act(`/api/panel/bills/${bill.id}/items`, "POST", { menuItemId, quantity })} />
           <PaymentDialog bill={bill} tableNumber={table.number} open={paying} onOpenChange={setPaying} busy={busy}
-            onPay={(body) => act(`/api/panel/bills/${bill.id}/payments`, "POST", body, "Pago registrado")} />
+            onPay={(body, shown) => act(`/api/panel/bills/${bill.id}/payments`, "POST", body, `Pago de ${formatCRC(shown)} registrado en la Mesa ${table.number}`)} />
           <PriceDialog target={price} onClose={() => setPrice(null)} busy={busy}
             onSave={(id, p) => act(`/api/panel/items/${id}`, "PATCH", { price: p }, "Precio actualizado")} />
           <ConfirmDialog open={confirm === "close"} onOpenChange={(o) => !o && setConfirm(null)} destructive busy={busy}
@@ -149,6 +159,10 @@ export function TableDetail({
             onConfirm={async () => { await act(`/api/panel/bills/${bill.id}/cancel-split`, "POST", undefined, "Partes iguales canceladas"); }} />
         </>
       ) : null}
+
+      <Button variant="ghost" size="sm" className="self-center text-muted-foreground" asChild>
+        <Link href={`/panel/qr/${table.number}`}><QrCodeIcon /> Mostrar QR grande</Link>
+      </Button>
     </div>
   );
 }
