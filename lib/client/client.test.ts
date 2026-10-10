@@ -17,9 +17,9 @@ function stateWith(o: { paidOutside?: number; balance?: number; all?: number; it
   return {
     view: "open", tableNumber: 2, serverTime: "2026-10-09T12:00:00Z", outcome: null,
   billId: "b1",
-    restaurant: { name: "Demo", primaryColor: "#0f766e", logoUrl: null, serviceRate: 0.1, vatRate: 0.13, pricesIncludeTaxes: false },
+    restaurant: { name: "Demo", primaryColor: "#0f766e", logoUrl: null, serviceRate: 0.1, vatRate: 0.13, pricesIncludeTaxes: false, sinpe: null, methods: ["card", "apple_pay", "google_pay", "sinpe"] },
     bill: {
-      id: "b1", lines,
+      id: "b1", mode: "items", mySinpe: null, lines,
       totals: { itemsSum: 17200, subtotal: 17200, service: 1720, vat: 2236, total: 21156, paid: 21156 - balance, balance },
       split: o.split ?? null,
       amounts: { all: o.all ?? balance, itemsBase: o.itemsBase ?? balance },
@@ -28,6 +28,28 @@ function stateWith(o: { paidOutside?: number; balance?: number; all?: number; it
   };
 }
 const pct0 = { type: "percent", value: 0 } as const;
+
+describe("vista previa del cobro: monto libre", () => {
+  const totalBill = (all: number) => {
+    const s = stateWith({ balance: 30000, all, lines: [] });
+    s.bill!.mode = "total";
+    return s;
+  };
+  it("cobra el monto escrito si cabe en lo que se puede pagar", () => {
+    expect(quote(totalBill(30000), "amount", [], pct0, 10000)).toMatchObject({ amount: 10000, total: 10000, blocked: null });
+  });
+  it("suma la propina aparte", () => {
+    expect(quote(totalBill(30000), "amount", [], { type: "percent", value: 10 }, 10000)).toMatchObject({ amount: 10000, tip: 1000, total: 11000 });
+  });
+  it("no deja pagar más de lo disponible ni cero", () => {
+    expect(quote(totalBill(20000), "amount", [], pct0, 20001).blocked).toMatch(/máximo/);
+    expect(quote(totalBill(20000), "amount", [], pct0, 0).blocked).toMatch(/Escriba cuánto/);
+    expect(quote(totalBill(20000), "amount", [], pct0, 10.5).blocked).toMatch(/Escriba cuánto/);
+  });
+  it("sin saldo libre explica por qué", () => {
+    expect(quote(totalBill(0), "amount", [], pct0, 100).blocked).toMatch(/Otra persona está pagando/);
+  });
+});
 
 describe("vista previa del cobro", () => {
   it("pagar todo cobra el saldo", () => {

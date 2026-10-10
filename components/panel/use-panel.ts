@@ -7,7 +7,7 @@ import { formatCRC } from "@/lib/money";
 import { panelEvents } from "@/lib/panel/events";
 import type { PanelState } from "@/lib/panel/types";
 
-import { beep, chime } from "./sound";
+import { alarm, beep, chime } from "./sound";
 import { METHOD_LABEL } from "./status";
 
 const POLL_MS = 3000;
@@ -18,13 +18,17 @@ const BLINK_PAID_MS = 5500;
 
 export interface Notice {
   id: number;
-  kind: "info" | "error" | "payment" | "paid";
+  kind: "info" | "error" | "payment" | "paid" | "sinpe";
   text: string;
   /** Se queda hasta que el salonero lo toque (mesa pagada completa). */
   sticky?: boolean;
   tableId?: string;
   billId?: string;
+  /** Aviso de SINPE por confirmar: el pago al que responden los botones. */
+  paymentId?: string;
 }
+
+const REMIND_MS = 20_000;
 
 /**
  * Estado del panel: Realtime avisa al instante y una consulta cada 3 s (solo con la pestaña visible)
@@ -77,6 +81,21 @@ export function usePanel(onUnauthorized: () => void) {
           blink(p.tableId, "payment");
         }
       }
+      // SINPE por confirmar: alarma propia y aviso fijo hasta que el salonero responda.
+      const sinpeNotice = (tableNumber: number, tableId: string, billId: string, paymentId: string, amount: number, code: string | null) =>
+        notify("sinpe", `Mesa ${tableNumber} · SINPE por confirmar ${formatCRC(amount)}${code ? ` · ${code}` : ""}`, { sticky: true, tableId, billId, paymentId });
+      if (prev.current === null) {
+        // Primera lectura (se abrió el panel con SINPE esperando): avisos fijos, sin sonido.
+        for (const t of next.tables) for (const p of t.bill?.pending ?? []) sinpeNotice(t.number, t.id, t.bill!.id, p.id, p.amount + p.tip, p.code);
+      }
+      if (ev.pending.length > 0) {
+        alarm();
+        rang = true;
+        for (const e of ev.pending) {
+          sinpeNotice(e.tableNumber, e.tableId, e.billId, e.paymentId, e.amount, e.code);
+          blink(e.tableId, "payment");
+        }
+      }
       for (const t of ev.paidWithoutPayment) {
         if (!rang) chime();
         rang = true;
@@ -85,7 +104,8 @@ export function usePanel(onUnauthorized: () => void) {
       }
       // Un aviso fijo se quita solo si la mesa ya no está pagada (alguien la liberó desde otro lado).
       const paidIds = new Set(next.tables.filter((t) => t.status === "paid").map((t) => t.id));
-      setNotices((n) => n.filter((x) => !x.sticky || !x.tableId || paidIds.has(x.tableId)));
+      const pendingIds = new Set(next.tables.flatMap((t) => t.bill?.pending.map((p) => p.id) ?? []));
+      setNotices((n) => n.filter((x) => !x.sticky || (x.kind === "sinpe" ? !!x.paymentId && pendingIds.has(x.paymentId) : !x.tableId || paidIds.has(x.tableId))));
       prev.current = next;
       setState(next);
     },
@@ -153,6 +173,14 @@ export function usePanel(onUnauthorized: () => void) {
     },
     [apply, notify, onUnauthorized],
   );
+
+  // Mientras haya un SINPE sin responder, la alarma se repite cada 20 s para que no se quede olvidado.
+  const pendingCount = state?.tables.reduce((n, t) => n + (t.bill?.pending.length ?? 0), 0) ?? 0;
+  useEffect(() => {
+    if (pendingCount === 0) return;
+    const t = setInterval(() => { if (document.visibilityState === "visible") alarm(); }, REMIND_MS);
+    return () => clearInterval(t);
+  }, [pendingCount]);
 
   // Realtime avisa al instante; la consulta cada 3 s queda como respaldo.
   useBroadcast(state?.restaurant.id ? `restaurant:${state.restaurant.id}` : null, refresh);

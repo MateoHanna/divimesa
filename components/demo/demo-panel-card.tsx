@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useBroadcast } from "@/components/realtime/use-broadcast";
 import { AnimatedMoney } from "@/components/ui/animated-number";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useJustPaid } from "@/components/ui/use-just-paid";
 import { brandVars } from "@/lib/branding";
 import { displayTableNumber } from "@/lib/demo/display";
@@ -45,6 +46,17 @@ export function DemoPanelCard({ token, initial, channel }: { token: string; init
   }, [refresh]);
   useBroadcast(channel, () => void refresh());
 
+  const [confirming, setConfirming] = useState(false);
+  async function confirm() {
+    setConfirming(true);
+    try {
+      await fetch(`/api/demo/mesa/${token}/confirm`, { method: "POST" });
+    } finally {
+      setConfirming(false);
+      void refresh();
+    }
+  }
+
   const { table } = view;
   const bill = table.bill;
   const justPaid = useJustPaid(bill?.lines);
@@ -59,6 +71,18 @@ export function DemoPanelCard({ token, initial, channel }: { token: string; init
 
       {bill ? (
         <>
+          {bill.pending.map((p) => (
+            <div key={p.id} role="alert" className="flex flex-col gap-2 rounded-2xl border-2 border-rose-500 bg-rose-50 p-3 text-rose-950">
+              <p className="text-xs font-bold tracking-wide uppercase">SINPE por confirmar</p>
+              <p className="text-3xl font-extrabold tabular-nums">{formatCRC(p.amount + p.tip)}</p>
+              <p className="text-sm">
+                Código <strong className="font-mono text-base tracking-wider">{p.code ?? "sin código"}</strong>
+                {p.payerName ? <> · a nombre de <strong>{p.payerName}</strong></> : null}
+              </p>
+              <p className="text-sm text-rose-900">Así avisa el panel cuando un cliente dice que ya hizo el SINPE. Usted lo busca en su banco y toca «Recibido».</p>
+              <Button size="lg" className="h-14 bg-emerald-700 text-base font-bold text-white hover:bg-emerald-800" disabled={confirming} onClick={() => void confirm()}>Recibido</Button>
+            </div>
+          ))}
           <ul className="flex flex-col divide-y rounded-xl border">
             {groupLines(bill.lines).map((g) => (
               <li key={g.key} className={cn("flex items-center gap-2 px-3 py-2", g.status === "paid" && "text-muted-foreground", g.ids.some((id) => justPaid.has(id)) && "animate-paid-flash")}>
@@ -86,6 +110,7 @@ export function DemoPanelCard({ token, initial, channel }: { token: string; init
                   <li key={p.id} className="flex items-center justify-between gap-2 p-3 text-sm animate-paid-flash">
                     <div>
                       <p className="font-medium">{METHOD_LABEL[p.method] ?? p.method} · {KIND_LABEL[p.kind] ?? p.kind}</p>
+                      {p.code ? <p className="font-mono">{p.code}</p> : null}
                       <p className="text-muted-foreground">{time(p.paidAt)} · {p.source === "qr" ? "Por QR" : "Salonero"}{p.tip ? ` · propina ${formatCRC(p.tip)}` : ""}</p>
                     </div>
                     <span className="font-semibold tabular-nums">{formatCRC(p.amount)}</span>

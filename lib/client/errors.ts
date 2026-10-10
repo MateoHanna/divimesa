@@ -20,6 +20,16 @@ const ERRORS: Record<string, { status: number; message: string }> = {
   invalid_kind: { status: 400, message: "Tipo de pago no válido." },
   invalid_tip: { status: 400, message: "La propina no es válida." },
   payment_not_found: { status: 404, message: "No se encontró el pago." },
+  invalid_amount: { status: 400, message: "El monto no es válido." },
+  amount_exceeds_balance: { status: 409, message: "El monto es mayor al saldo pendiente." },
+  method_not_available: { status: 409, message: "Ese método de pago no está disponible. Pague por SINPE Móvil." },
+  simulated_only_demo: { status: 409, message: "Ese método de pago no está disponible. Pague por SINPE Móvil." },
+  sinpe_not_configured: { status: 409, message: "Este restaurante todavía no recibe SINPE Móvil por aquí. Pague con su salonero." },
+  sinpe_pending: { status: 409, message: "Ya tiene un SINPE esperando confirmación. Espere a que el restaurante lo confirme." },
+  too_many_pending: { status: 409, message: "Hay muchos pagos por confirmar en esta mesa. Hable con su salonero." },
+  payment_expired: { status: 409, message: "Pasó mucho tiempo desde que empezó. Vuelva a empezar. Si ya hizo el SINPE, avise a su salonero." },
+  total_bill: { status: 409, message: "Esta cuenta es de solo el total." },
+  code_unavailable: { status: 503, message: "No se pudo generar el código. Intente de nuevo." },
 };
 
 export interface ClientError { status: number; code: string; message: string }

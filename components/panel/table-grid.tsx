@@ -1,6 +1,6 @@
 "use client";
 
-import { ChartPieIcon, CircleCheckIcon, CircleDashedIcon, UtensilsCrossedIcon } from "lucide-react";
+import { ChartPieIcon, CircleCheckIcon, CircleDashedIcon, SmartphoneIcon, UtensilsCrossedIcon } from "lucide-react";
 
 import { AnimatedMoney } from "@/components/ui/animated-number";
 import type { PanelTable, TableStatus } from "@/lib/panel/types";
@@ -54,6 +54,7 @@ export function TableGrid({
           const Icon = ICON[t.status];
           const blink = flashing.get(t.id);
           const totals = t.bill?.totals;
+          const toConfirm = t.bill?.pending.length ?? 0;
           const pct = totals && totals.total > 0 ? Math.min(100, Math.round((totals.paid / totals.total) * 100)) : 0;
           return (
             <li key={t.id}>
@@ -61,13 +62,14 @@ export function TableGrid({
                 type="button"
                 onClick={() => onSelect(t.id)}
                 aria-pressed={selectedId === t.id}
-                aria-label={`Mesa ${t.number}, ${STATUS_LABEL[t.status]}`}
+                aria-label={`Mesa ${t.number}, ${STATUS_LABEL[t.status]}${toConfirm > 0 ? `, ${toConfirm === 1 ? "un SINPE por confirmar" : `${toConfirm} SINPE por confirmar`}` : ""}`}
                 className={cn(
                   "relative flex min-h-32 w-full flex-col items-start justify-between rounded-2xl border-2 p-3 text-left shadow-sm transition-colors duration-500 active:scale-[0.98]",
                   CARD[t.status],
                   blink === "payment" && "animate-card-blink",
                   blink === "paid" && "animate-card-blink-paid",
                   selectedId === t.id && "ring-4 ring-primary/50",
+                  toConfirm > 0 && "border-rose-500 ring-4 ring-rose-500/70",
                 )}
               >
                 <span className="flex w-full items-start justify-between">
@@ -75,6 +77,11 @@ export function TableGrid({
                   <Icon aria-hidden className="size-6 opacity-80" />
                 </span>
                 <span className="flex w-full flex-col gap-1">
+                  {toConfirm > 0 ? (
+                    <span className="flex w-fit items-center gap-1 rounded-full bg-rose-600 px-2 py-0.5 text-xs font-bold text-white">
+                      <SmartphoneIcon className="size-3.5 animate-pulse" aria-hidden /> SINPE por confirmar
+                    </span>
+                  ) : null}
                   <span className="text-sm font-bold tracking-wide uppercase">{STATUS_LABEL[t.status]}</span>
                   {totals ? (
                     <span className="text-sm">

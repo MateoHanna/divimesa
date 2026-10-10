@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CircleCheckIcon, LogOutIcon, MoreVerticalIcon, PaletteIcon, PrinterIcon, RotateCcwIcon, WifiOffIcon } from "lucide-react";
+import { CircleCheckIcon, LogOutIcon, MoreVerticalIcon, PaletteIcon, PrinterIcon, RotateCcwIcon, SmartphoneIcon, WalletIcon, WifiOffIcon } from "lucide-react";
 
 import { BrandMark } from "@/components/brand/brand-mark";
 import { DivimesaLogo } from "@/components/brand/divimesa-logo";
@@ -12,6 +12,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { brandVars } from "@/lib/branding";
 import { cn } from "@/lib/utils";
 
+import { BillingDialog } from "./billing-dialog";
 import { BrandingDialog } from "./branding-dialog";
 import { ConfirmDialog } from "./confirm-dialog";
 import { enableAudio } from "./sound";
@@ -25,6 +26,8 @@ export function PanelApp() {
   const onUnauthorized = useCallback(() => router.refresh(), [router]);
   const { state, notices, flashing, busy, offline, act, refresh, dismiss, notify } = usePanel(onUnauthorized);
   const [branding, setBranding] = useState(false);
+  const [billing, setBilling] = useState(false);
+  const [rejectId, setRejectId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [reset, setReset] = useState<null | "demo" | "factory">(null);
@@ -90,7 +93,7 @@ export function PanelApp() {
           )}
         >
           {selected && state ? (
-            <TableDetail key={selected.id} table={selected} menu={state.menu} busy={busy} act={act} onBack={() => setSelectedId(null)} />
+            <TableDetail key={selected.id} table={selected} menu={state.menu} billMode={state.restaurant.billMode} busy={busy} act={act} onBack={() => setSelectedId(null)} />
           ) : (
             <p className="p-8 text-center text-muted-foreground">Elija una mesa para ver su cuenta.</p>
           )}
@@ -104,13 +107,27 @@ export function PanelApp() {
               n.kind === "error" && "bg-destructive text-white",
               n.kind === "paid" && "bg-emerald-600 text-white ring-2 ring-white/70",
               n.kind === "payment" && "bg-sky-700 text-white",
+              n.kind === "sinpe" && "flex-wrap bg-rose-600 text-white ring-2 ring-white/70",
               n.kind === "info" && "bg-foreground text-background")}>
             <button type="button" className="min-w-0 flex-1 text-left"
               aria-label={n.sticky ? `${n.text}. Tocar para cerrar el aviso` : n.text}
               onClick={() => dismiss(n.id)}>
               {n.kind === "paid" ? <CircleCheckIcon className="mr-1.5 -mt-0.5 inline size-5" aria-hidden /> : null}
+              {n.kind === "sinpe" ? <SmartphoneIcon className="mr-1.5 -mt-0.5 inline size-5 animate-pulse" aria-hidden /> : null}
               {n.text}
             </button>
+            {n.kind === "sinpe" && n.paymentId ? (
+              <div className="flex w-full gap-2">
+                <Button size="sm" className="h-11 flex-1 bg-white font-bold text-emerald-800 hover:bg-white/90" disabled={busy}
+                  onClick={() => void act(`/api/panel/payments/${n.paymentId}/confirm`, "POST", undefined, "SINPE confirmado")}>
+                  Recibido
+                </Button>
+                <Button size="sm" variant="outline" className="h-11 flex-1 border-white bg-transparent font-bold text-white hover:bg-white/15 hover:text-white" disabled={busy}
+                  onClick={() => setRejectId(n.paymentId ?? null)}>
+                  No llegó
+                </Button>
+              </div>
+            ) : null}
             {n.kind === "paid" && n.billId ? (
               <Button size="sm" variant="secondary" className="shrink-0 bg-white font-bold text-emerald-800 hover:bg-white/90" disabled={busy}
                 onClick={async () => {
@@ -129,6 +146,10 @@ export function PanelApp() {
           <Button variant="outline" size="lg" onClick={() => { setMenuOpen(false); setBranding(true); }}>
             <PaletteIcon /> Personalizar restaurante
           </Button>
+          <Button variant="outline" size="lg" onClick={() => { setMenuOpen(false); setBilling(true); }}>
+            <WalletIcon /> Cobro y SINPE Móvil
+          </Button>
+          {state?.restaurant.isDemo ? (
           <button type="button" role="switch" aria-checked={!!state?.restaurant.showDeclineDemo} disabled={busy || !state}
             onClick={() => act("/api/panel/settings", "PATCH", { showDeclineDemo: !state?.restaurant.showDeclineDemo },
               state?.restaurant.showDeclineDemo ? "Simular rechazo apagado" : "Simular rechazo encendido")}
@@ -142,21 +163,31 @@ export function PanelApp() {
               <span className={cn("size-6 rounded-full bg-white shadow transition-transform", state?.restaurant.showDeclineDemo && "translate-x-5")} />
             </span>
           </button>
+          ) : null}
           <Button variant="outline" size="lg" asChild>
             <Link href="/panel/qr"><PrinterIcon /> Imprimir QR de todas las mesas</Link>
           </Button>
-          <Button variant="outline" size="lg" onClick={() => { setMenuOpen(false); setReset("demo"); }}>
-            <RotateCcwIcon /> Reiniciar demo
-          </Button>
-          <p className="-mt-2 text-sm text-muted-foreground">Borra cuentas y pagos y deja la Mesa 4 abierta. Conserva nombre, color y menú.</p>
-          <Button variant="outline" size="lg" className="text-destructive" onClick={() => { setMenuOpen(false); setReset("factory"); }}>
-            <RotateCcwIcon /> Restaurar valores de fábrica
-          </Button>
-          <p className="-mt-2 text-sm text-muted-foreground">Devuelve todo al estado original, incluido el menú, el nombre y el color.</p>
+          {state?.restaurant.isDemo ? (
+            <>
+              <Button variant="outline" size="lg" onClick={() => { setMenuOpen(false); setReset("demo"); }}>
+                <RotateCcwIcon /> Reiniciar demo
+              </Button>
+              <p className="-mt-2 text-sm text-muted-foreground">Borra cuentas y pagos y deja la Mesa 4 abierta. Conserva nombre, color y menú.</p>
+              <Button variant="outline" size="lg" className="text-destructive" onClick={() => { setMenuOpen(false); setReset("factory"); }}>
+                <RotateCcwIcon /> Restaurar valores de fábrica
+              </Button>
+              <p className="-mt-2 text-sm text-muted-foreground">Devuelve todo al estado original, incluido el menú, el nombre y el color.</p>
+            </>
+          ) : null}
           <Button variant="ghost" size="lg" onClick={logout}><LogOutIcon /> Salir</Button>
         </DialogContent>
       </Dialog>
 
+      <BillingDialog open={billing} onOpenChange={setBilling} restaurant={state?.restaurant} act={act} busy={busy} />
+      <ConfirmDialog open={rejectId !== null} onOpenChange={(o) => !o && setRejectId(null)} destructive busy={busy}
+        title="¿Marcar como «No llegó»?" confirmLabel="No llegó"
+        description="El cliente verá que el restaurante no encontró su SINPE. El saldo queda libre otra vez."
+        onConfirm={async () => { if (rejectId) await act(`/api/panel/payments/${rejectId}/reject`, "POST", undefined, "Marcado como «No llegó»"); }} />
       <BrandingDialog open={branding} onOpenChange={setBranding} restaurant={state?.restaurant} act={act} busy={busy}
         onError={(m) => notify("error", m)} />
 

@@ -8,6 +8,8 @@ const serverSchema = z.object({
   PAYMENT_PROVIDER: z.enum(["mock"]).default("mock"),
   MOCK_WEBHOOK_SECRET: z.string().min(16),
   APP_URL: z.url().optional(),
+  // Opcional: restaurante que muestra el panel (hasta que cada restaurante tenga su propio PIN).
+  PANEL_RESTAURANT_ID: z.union([z.uuid(), z.literal("")]).optional().transform((v) => v || undefined),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;

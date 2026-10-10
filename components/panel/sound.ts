@@ -51,3 +51,17 @@ export function chime(): void {
     /* sin audio o vibración */
   }
 }
+
+/** Tres pitidos agudos y rápidos: un SINPE espera confirmación. Se distingue del pitido de pago y de la campanita. */
+export function alarm(): void {
+  try {
+    tones([
+      { freq: 1175, at: 0, len: 0.16, gain: 0.3, type: "square" },
+      { freq: 1175, at: 0.24, len: 0.16, gain: 0.3, type: "square" },
+      { freq: 1568, at: 0.48, len: 0.3, gain: 0.3, type: "square" },
+    ]);
+    navigator.vibrate?.([250, 100, 250, 100, 400]);
+  } catch {
+    /* sin audio o vibración */
+  }
+}

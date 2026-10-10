@@ -1,4 +1,4 @@
-import type { ClientBill, ClientLine, ClientState } from "./types";
+import type { ClientBill, ClientLine, ClientState, MySinpe, PayMethod } from "./types";
 
 // Forma cruda que devuelve public.client_state (snake_case).
 interface RawLine {
@@ -12,10 +12,14 @@ interface RawState {
   restaurant: {
     name: string; primary_color: string; logo_url?: string | null;
     service_rate?: number | string; vat_rate?: number | string; prices_include_taxes?: boolean;
+    sinpe?: { number: string; holder: string; test: boolean } | null;
+    methods?: PayMethod[];
   };
   bill: null | {
     id: string;
     status: string;
+    mode?: "items" | "total";
+    my_sinpe?: null | { id: string; status: "pending" | "paid" | "failed"; amount: number; tip: number; code: string | null; reported: boolean; kind: MySinpe["kind"] };
     outcome?: "paid" | "closed";
     lines?: RawLine[];
     totals?: { items_sum: number; subtotal: number; service: number; vat: number; total: number; paid: number; balance: number };
@@ -32,6 +36,8 @@ export function toClientState(raw: RawState): ClientState {
   if (raw.view === "open" && b && b.lines && b.totals && b.amounts) {
     bill = {
       id: b.id,
+      mode: b.mode === "total" ? "total" : "items",
+      mySinpe: b.my_sinpe ?? null,
       lines: b.lines.map<ClientLine>((l) => ({
         id: l.id, name: l.name, amount: l.amount, status: l.status, reserved: l.reserved,
         reservedUntil: l.reserved_until, splitGroupId: l.split_group_id,
@@ -61,6 +67,8 @@ export function toClientState(raw: RawState): ClientState {
       serviceRate: Number(raw.restaurant.service_rate ?? 0),
       vatRate: Number(raw.restaurant.vat_rate ?? 0),
       pricesIncludeTaxes: !!raw.restaurant.prices_include_taxes,
+      sinpe: raw.restaurant.sinpe ?? null,
+      methods: raw.restaurant.methods ?? ["card", "apple_pay", "google_pay", "sinpe"],
     },
     bill,
   };

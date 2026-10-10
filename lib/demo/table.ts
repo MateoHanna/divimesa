@@ -32,7 +32,7 @@ export async function loadDemoTable(db: SupabaseClient, token: string, now: Date
 
   const tableId = found.data.id;
   const bills = await db.from("bills")
-    .select("id,table_id,status,paid_amount,split_mode,split_parts,split_share_amount,split_paid_parts,opened_at,paid_at")
+    .select("id,table_id,status,paid_amount,fixed_total,split_mode,split_parts,split_share_amount,split_paid_parts,opened_at,paid_at")
     .eq("table_id", tableId).in("status", ["open", "paid"]).returns<BillRow[]>();
   const bill = bills.data?.[0] ?? null;
 
@@ -43,7 +43,7 @@ export async function loadDemoTable(db: SupabaseClient, token: string, now: Date
     const [items, payments] = await Promise.all([
       db.from("bill_items").select("id,bill_id,name,unit_price,quantity,status,reserved_until,created_at,split_group_id")
         .eq("bill_id", bill.id).returns<ItemRow[]>(),
-      db.from("payments").select("id,bill_id,amount,tip_amount,overpaid_amount,method,source,kind,status,paid_at,created_at")
+      db.from("payments").select("id,bill_id,amount,tip_amount,overpaid_amount,method,source,kind,status,paid_at,created_at,reference_code,payer_name,reported_at")
         .eq("bill_id", bill.id).returns<PaymentRow[]>(),
     ]);
     const paidItemPayments = (payments.data ?? []).filter((p) => p.kind === "items" && p.status === "paid").map((p) => p.id);

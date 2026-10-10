@@ -24,6 +24,14 @@ export interface PanelTotals {
   balance: number;
 }
 
+/** Datos de factura que dejó el cliente junto a su pago (solo los ve el personal del restaurante). */
+export interface PanelInvoice {
+  name: string | null;
+  idType: "fisica" | "juridica" | null;
+  idNumber: string | null;
+  email: string | null;
+}
+
 export interface PanelPayment {
   id: string;
   amount: number;
@@ -35,6 +43,24 @@ export interface PanelPayment {
   paidAt: string;
   /** Platos que cubrió el pago (solo en pagos por platos), agrupados por nombre. */
   items: { name: string; count: number }[];
+  /** Código de referencia del SINPE (por ejemplo M4-7K2). */
+  code: string | null;
+  payerName: string | null;
+  invoice: PanelInvoice | null;
+}
+
+/** SINPE que el cliente dice haber hecho y el salonero todavía no confirma. */
+export interface PendingPayment {
+  id: string;
+  /** Lo que baja el saldo de la cuenta. */
+  amount: number;
+  /** Propina aparte: el cliente transfiere amount + tip. */
+  tip: number;
+  kind: PanelPayment["kind"];
+  code: string | null;
+  payerName: string | null;
+  reportedAt: string;
+  invoice: PanelInvoice | null;
 }
 
 export interface PanelSplit {
@@ -45,6 +71,8 @@ export interface PanelSplit {
 
 export interface PanelBill {
   id: string;
+  /** 'total': el salonero digitó el total (ya con servicio e impuestos) y no hay platos. */
+  mode: "items" | "total";
   status: "open" | "paid";
   openedAt: string;
   paidAt: string | null;
@@ -52,6 +80,7 @@ export interface PanelBill {
   totals: PanelTotals;
   split: PanelSplit | null;
   payments: PanelPayment[];
+  pending: PendingPayment[];
 }
 
 export interface PanelTable {
@@ -69,7 +98,10 @@ export interface PanelMenuItem {
 }
 
 export interface PanelState {
-  restaurant: { id: string; name: string; primaryColor: string; logoUrl: string | null; showDeclineDemo: boolean };
+  restaurant: {
+    id: string; name: string; primaryColor: string; logoUrl: string | null; showDeclineDemo: boolean;
+    billMode: "items" | "total"; isDemo: boolean; sinpeNumber: string | null; sinpeHolder: string | null;
+  };
   tables: PanelTable[];
   menu: PanelMenuItem[];
   serverTime: string;

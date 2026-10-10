@@ -18,7 +18,9 @@ const invoice = z.object({
 
 const schema = z.object({
   token: z.string(),
-  mode: z.enum(["all", "items", "equal"]),
+  mode: z.enum(["all", "items", "equal", "amount"]),
+  /** Solo en mode "amount" (monto libre): colones enteros. */
+  amount: z.number().int().min(1).max(100_000_000).optional(),
   itemIds: z.array(z.uuid()).max(100).optional(),
   method: z.enum(["card", "apple_pay", "google_pay", "sinpe"]),
   tip: z.discriminatedUnion("type", [
@@ -40,10 +42,10 @@ export const POST = clientRoute(async (req) => {
 
   const created = await rpc<{
     ok: boolean; code?: string; unavailable?: { id: string; reason: string }[];
-    payment_id?: string; amount?: number; tip?: number; expires_at?: string;
+    payment_id?: string; amount?: number; tip?: number; expires_at?: string; reference_code?: string;
   }>("client_create_payment", {
     p_token: token, p_session: session, p_mode: body.mode, p_item_ids: body.itemIds ?? null, p_method: body.method,
-    p_tip_type: body.tip.type, p_tip_value: body.tip.value, p_provider: provider.id,
+    p_tip_type: body.tip.type, p_tip_value: body.tip.value, p_provider: provider.id, p_amount: body.amount ?? null,
     p_invoice: body.invoice
       ? { name: body.invoice.name ?? "", id_type: body.invoice.idType ?? "", id_number: body.invoice.idNumber ?? "", email: body.invoice.email ?? "" }
       : null,
@@ -56,6 +58,16 @@ export const POST = clientRoute(async (req) => {
   }
 
   const paymentId = created.payment_id;
+
+  // SINPE Móvil: no hay pasarela. El cliente transfiere directo al restaurante y la pantalla de instrucciones
+  // sale del estado de la mesa (my_sinpe). Divimesa no recibe dinero.
+  if (body.method === "sinpe") {
+    return {
+      paymentId, amount: created.amount, tip: created.tip, code: created.reference_code,
+      state: await loadClientState(token, session),
+    };
+  }
+
   try {
     const checkout = await provider.createCheckout({
       paymentId, amount: created.amount ?? 0, currency: "CRC", description: "Pago de cuenta en la mesa",

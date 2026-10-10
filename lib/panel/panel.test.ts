@@ -5,6 +5,8 @@ import { amountForItems } from "../money";
 import { pinMatches, signSession, verifySession } from "./auth";
 import { mapDbError } from "./errors";
 import { createLimiter } from "./rate-limit";
+import { normalizeSinpeHolder, normalizeSinpeNumber } from "./sinpe";
+import { formatSinpeNumber } from "../sinpe";
 import {
   buildPanelState,
   groupLines,
@@ -185,6 +187,72 @@ describe("estado del panel", () => {
     expect(newlyPaidTables(prev, next)).toEqual([1]);
     expect(newPaymentCount(prev, next)).toBe(1);
     expect(newlyPaidTables(null, next)).toEqual([]);
+  });
+});
+
+describe("cuenta de solo el total (modo piloto)", () => {
+  const total = (o: Partial<BillRow> = {}) => bill({ fixed_total: 25000, ...o });
+  const build = (b: BillRow, payments: PaymentRow[], invoices = [] as Parameters<typeof buildPanelState>[0]["invoices"]) =>
+    buildPanelState({ restaurant: { ...restaurant, bill_mode: "total", sinpe_number: "88887777", sinpe_holder: "Soda Piloto" }, tables: [{ id: "t1", number: 1 }],
+      bills: [b], items: [], payments, invoices, menu: [], now: NOW });
+
+  it("el total digitado es el total: no suma servicio ni IVA", () => {
+    const s = build(total({ paid_amount: 10000 }), []);
+    expect(s.tables[0].bill).toMatchObject({ mode: "total", totals: { itemsSum: 25000, subtotal: 25000, service: 0, vat: 0, total: 25000, paid: 10000, balance: 15000 } });
+    expect(s.restaurant).toMatchObject({ billMode: "total", sinpeNumber: "88887777", sinpeHolder: "Soda Piloto", isDemo: false });
+  });
+
+  it("una cuenta por platos sigue calculando servicio e IVA", () => {
+    expect(buildPanelState({ restaurant, tables: [{ id: "t1", number: 1 }], bills: [bill()], items: [item("i1")], payments: [], menu: [], now: NOW })
+      .tables[0].bill).toMatchObject({ mode: "items", totals: { service: 550, vat: 715, total: 6765 } });
+  });
+
+  it("solo los SINPE reportados y sin responder aparecen por confirmar, con su factura", () => {
+    const sinpe = (o: Partial<PaymentRow>): PaymentRow => pay({ method: "sinpe", source: "qr", status: "pending", paid_at: null, created_at: "2026-10-09T11:55:00Z", ...o });
+    const s = build(total(), [
+      sinpe({ id: "a", reported_at: "2026-10-09T11:56:00Z", reference_code: "M1-7K2", payer_name: "Ana Mora", amount: 10000, tip_amount: 1000 }),
+      sinpe({ id: "b", reported_at: null }), // solo vio las instrucciones
+      sinpe({ id: "c", reported_at: "2026-10-09T11:57:00Z", status: "failed" }),
+    ], [{ payment_id: "a", name: "Ana Mora", id_type: "fisica", id_number: "112340567", email: "ana@example.com" }]);
+    expect(s.tables[0].bill!.pending).toEqual([{
+      id: "a", amount: 10000, tip: 1000, kind: "amount", code: "M1-7K2", payerName: "Ana Mora", reportedAt: "2026-10-09T11:56:00Z",
+      invoice: { name: "Ana Mora", idType: "fisica", idNumber: "112340567", email: "ana@example.com" },
+    }]);
+    expect(s.tables[0].bill!.payments).toEqual([]); // todavía no es un pago confirmado
+  });
+
+  it("platos apartados por un SINPE por confirmar ('infinity') cuentan como apartados", () => {
+    const s = buildPanelState({ restaurant, tables: [{ id: "t1", number: 1 }], bills: [bill()], items: [item("i1", { reserved_until: "infinity" })], payments: [], menu: [], now: NOW });
+    expect(s.tables[0].bill!.lines[0].reserved).toBe(true);
+  });
+
+  it("un SINPE confirmado queda en los pagos con su código y nombre", () => {
+    const s = build(total({ paid_amount: 25000, status: "paid", paid_at: "2026-10-09T11:58:00Z" }), [
+      pay({ id: "a", method: "sinpe", source: "qr", kind: "full", amount: 25000, reference_code: "M1-AB3", payer_name: "Luis" }),
+    ]);
+    expect(s.tables[0].bill!.payments[0]).toMatchObject({ code: "M1-AB3", payerName: "Luis", method: "sinpe" });
+    expect(s.tables[0].bill!.pending).toEqual([]);
+  });
+});
+
+describe("datos del SINPE Móvil", () => {
+  it("acepta 8 dígitos con espacios o guion", () => {
+    expect(normalizeSinpeNumber("8888-7777")).toBe("88887777");
+    expect(normalizeSinpeNumber(" 8888 7777 ")).toBe("88887777");
+    expect(normalizeSinpeNumber("")).toBeNull();
+  });
+  it("rechaza números que no son de 8 dígitos", () => {
+    for (const bad of ["8888777", "888877778", "8888-77a7", "+506 8888 7777"]) expect(() => normalizeSinpeNumber(bad)).toThrow();
+  });
+  it("normaliza el nombre del titular", () => {
+    expect(normalizeSinpeHolder("  Soda   La Esquina  S.A. ")).toBe("Soda La Esquina S.A.");
+    expect(normalizeSinpeHolder("  ")).toBeNull();
+    expect(() => normalizeSinpeHolder("A")).toThrow();
+    expect(() => normalizeSinpeHolder("x".repeat(81))).toThrow();
+  });
+  it("da formato 8888-7777 solo a números válidos", () => {
+    expect(formatSinpeNumber("88887777")).toBe("8888-7777");
+    expect(formatSinpeNumber("123")).toBe("123");
   });
 });
 

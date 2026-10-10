@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeftIcon, MinusIcon, MoreVerticalIcon, PencilIcon, QrCodeIcon } from "lucide-react";
 
+import { Input } from "@/components/ui/input";
+
 import { AnimatedMoney } from "@/components/ui/animated-number";
 import { useJustPaid } from "@/components/ui/use-just-paid";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +18,10 @@ import { cn } from "@/lib/utils";
 import { AddItemsDialog } from "./add-items-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ConfirmDialog } from "./confirm-dialog";
+import { InvoiceInfo } from "./invoice-info";
 import { PaymentDialog } from "./payment-dialog";
+import { PendingSinpe } from "./pending-sinpe";
+import { parseColones, TotalDialog } from "./total-dialog";
 import { PriceDialog } from "./price-dialog";
 import { KIND_LABEL, METHOD_LABEL, STATUS_CLASS, STATUS_LABEL } from "./status";
 import type { PanelState } from "@/lib/panel/types";
@@ -24,15 +29,19 @@ import type { PanelState } from "@/lib/panel/types";
 type Act = (url: string, method: "POST" | "PATCH" | "DELETE", body?: unknown, okText?: string) => Promise<boolean>;
 
 export function TableDetail({
-  table, menu, busy, act, onBack,
-}: { table: PanelTable; menu: PanelState["menu"]; busy: boolean; act: Act; onBack: () => void }) {
+  table, menu, billMode, busy, act, onBack,
+}: { table: PanelTable; menu: PanelState["menu"]; billMode: "items" | "total"; busy: boolean; act: Act; onBack: () => void }) {
   const justPaid = useJustPaid(table.bill?.lines);
   const [adding, setAdding] = useState(false);
   const [paying, setPaying] = useState(false);
   const [price, setPrice] = useState<{ id: string; name: string; price: number } | null>(null);
   const [confirm, setConfirm] = useState<null | "close" | "release" | "split">(null);
   const [options, setOptions] = useState(false);
+  const [editTotal, setEditTotal] = useState(false);
+  const [openText, setOpenText] = useState("");
   const bill = table.bill;
+  const isTotal = bill?.mode === "total";
+  const openTotal = parseColones(openText);
   const time = (iso: string) => new Date(iso).toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit" });
 
   return (
@@ -46,12 +55,29 @@ export function TableDetail({
         ) : null}
       </header>
 
-      {!bill ? (
+      {!bill && billMode === "total" ? (
+        <form className="flex flex-col gap-3 rounded-2xl border p-4" onSubmit={(e) => {
+          e.preventDefault();
+          if (openTotal > 0) void act("/api/panel/bills", "POST", { tableId: table.id, total: openTotal });
+        }}>
+          <label className="flex flex-col gap-1 text-sm font-medium">
+            Total de la cuenta (ya con servicio e impuestos)
+            <Input inputMode="numeric" autoComplete="off" placeholder="₡ 0" className="h-14 text-center text-2xl" value={openText}
+              onChange={(e) => setOpenText(e.target.value)} />
+          </label>
+          <Button size="xl" type="submit" disabled={busy || openTotal <= 0}>Abrir mesa{openTotal > 0 ? ` con ${formatCRC(openTotal)}` : ""}</Button>
+        </form>
+      ) : null}
+      {!bill && billMode !== "total" ? (
         <Button size="xl" disabled={busy} onClick={() => act("/api/panel/bills", "POST", { tableId: table.id })}>Abrir cuenta</Button>
       ) : null}
 
       {bill ? (
         <>
+          <PendingSinpe pending={bill.pending} busy={busy}
+            onConfirm={(id) => act(`/api/panel/payments/${id}/confirm`, "POST", undefined, "SINPE confirmado")}
+            onReject={(id) => act(`/api/panel/payments/${id}/reject`, "POST", undefined, "Marcado como «No llegó»")} />
+
           {bill.split ? (
             <div className="flex flex-col gap-2 rounded-xl border border-sky-300 bg-sky-50 p-3 text-sm text-sky-900">
               <p>
@@ -63,6 +89,27 @@ export function TableDetail({
             </div>
           ) : null}
 
+          {isTotal ? (
+            <div className="flex items-center justify-between gap-3 rounded-xl border p-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Total de la cuenta</p>
+                <p className="text-3xl font-extrabold tabular-nums"><AnimatedMoney value={bill.totals.total} /></p>
+              </div>
+              {bill.status === "open" ? (
+                <Button variant="outline" size="lg" disabled={busy || bill.pending.length > 0 || !!bill.split} onClick={() => setEditTotal(true)}>
+                  <PencilIcon /> Corregir
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+          {isTotal && bill.status === "open" && bill.pending.length > 0 ? (
+            <p className="-mt-2 text-sm text-muted-foreground">Para corregir el total, primero responda el SINPE por confirmar.</p>
+          ) : null}
+          {isTotal && bill.status === "open" && bill.split ? (
+            <p className="-mt-2 text-sm text-muted-foreground">Para corregir el total, primero cancele las partes iguales.</p>
+          ) : null}
+
+          {!isTotal ? (
           <ul className="flex flex-col divide-y rounded-xl border">
             {bill.lines.length === 0 ? <li className="p-4 text-center text-sm text-muted-foreground">Todavía no hay platos.</li> : null}
             {groupLines(bill.lines).map((g) => {
@@ -94,11 +141,16 @@ export function TableDetail({
               );
             })}
           </ul>
+          ) : null}
 
           <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm">
-            <dt>Subtotal</dt><dd className="text-right tabular-nums"><AnimatedMoney value={bill.totals.subtotal} /></dd>
-            <dt>Servicio</dt><dd className="text-right tabular-nums"><AnimatedMoney value={bill.totals.service} /></dd>
-            <dt>IVA</dt><dd className="text-right tabular-nums"><AnimatedMoney value={bill.totals.vat} /></dd>
+            {!isTotal ? (
+              <>
+                <dt>Subtotal</dt><dd className="text-right tabular-nums"><AnimatedMoney value={bill.totals.subtotal} /></dd>
+                <dt>Servicio</dt><dd className="text-right tabular-nums"><AnimatedMoney value={bill.totals.service} /></dd>
+                <dt>IVA</dt><dd className="text-right tabular-nums"><AnimatedMoney value={bill.totals.vat} /></dd>
+              </>
+            ) : null}
             <dt className="font-semibold">Total</dt><dd className="text-right font-semibold tabular-nums"><AnimatedMoney value={bill.totals.total} /></dd>
             <dt>Pagado</dt><dd className="text-right tabular-nums"><AnimatedMoney value={bill.totals.paid} /></dd>
             <dt className="text-base font-bold">Saldo</dt><dd className="text-right text-base font-bold tabular-nums"><AnimatedMoney value={bill.totals.balance} /></dd>
@@ -106,7 +158,7 @@ export function TableDetail({
 
           {bill.status === "open" ? (
             <div className="grid grid-cols-2 gap-2">
-              {!bill.split ? <Button size="lg" variant="outline" onClick={() => setAdding(true)}>Agregar platos</Button> : <span />}
+              {!bill.split && !isTotal ? <Button size="lg" variant="outline" onClick={() => setAdding(true)}>Agregar platos</Button> : <span />}
               <Button size="lg" disabled={bill.totals.balance <= 0} onClick={() => setPaying(true)}>Registrar pago</Button>
             </div>
           ) : (
@@ -126,6 +178,10 @@ export function TableDetail({
                       {p.items.length > 0 ? (
                         <p>{p.items.map((i) => `${i.count > 1 ? `${i.count} × ` : ""}${i.name}`).join(", ")}</p>
                       ) : null}
+                      {p.code || p.payerName ? (
+                        <p>{p.code ? <span className="font-mono">{p.code}</span> : null}{p.code && p.payerName ? " · " : ""}{p.payerName ? `a nombre de ${p.payerName}` : ""}</p>
+                      ) : null}
+                      <InvoiceInfo invoice={p.invoice} />
                       <p className="text-muted-foreground">
                         {time(p.paidAt)} · {p.source === "qr" ? "Por QR" : "Salonero"}
                         {p.tip ? ` · propina ${formatCRC(p.tip)}` : ""}
@@ -147,6 +203,8 @@ export function TableDetail({
             </DialogContent>
           </Dialog>
 
+          <TotalDialog open={editTotal} onOpenChange={setEditTotal} current={bill.totals.total} paid={bill.totals.paid} busy={busy}
+            onSave={(total) => act(`/api/panel/bills/${bill.id}/total`, "PATCH", { total }, `Total corregido a ${formatCRC(total)}`)} />
           <AddItemsDialog open={adding} onOpenChange={setAdding} menu={menu} busy={busy}
             onAdd={(menuItemId, quantity) => act(`/api/panel/bills/${bill.id}/items`, "POST", { menuItemId, quantity })} />
           <PaymentDialog bill={bill} tableNumber={table.number} open={paying} onOpenChange={setPaying} busy={busy}

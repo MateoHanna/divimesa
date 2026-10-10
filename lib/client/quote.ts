@@ -31,7 +31,7 @@ export function selectableLines(bill: ClientBill) {
  * esto solo sirve para mostrarlo antes de tocar "Pagar".
  */
 export function quote(
-  state: ClientState, mode: PayMode | null, selectedIds: readonly string[], tip: TipChoice,
+  state: ClientState, mode: PayMode | null, selectedIds: readonly string[], tip: TipChoice, freeAmount = 0,
 ): Quote {
   const bill = state.bill;
   if (!bill || !mode) return EMPTY;
@@ -43,6 +43,19 @@ export function quote(
   if (mode === "all") {
     amount = bill.amounts.all;
     if (amount <= 0) blocked = bill.totals.balance > 0 ? "Otra persona está pagando el resto de la cuenta. Espere un momento." : "No hay saldo pendiente.";
+  } else if (mode === "amount") {
+    // Monto libre (solo cuentas de solo el total): entero, de 1 hasta lo que se puede pagar ahora.
+    if (bill.amounts.all <= 0) {
+      blocked = bill.totals.balance > 0 ? "Otra persona está pagando el resto de la cuenta. Espere un momento." : "No hay saldo pendiente.";
+    } else if (bill.split) {
+      blocked = "La cuenta está en partes iguales. Pague una parte.";
+    } else if (!Number.isInteger(freeAmount) || freeAmount < 1) {
+      blocked = "Escriba cuánto va a pagar.";
+    } else if (freeAmount > bill.amounts.all) {
+      blocked = `Lo máximo que puede pagar ahora es ${formatCRC(bill.amounts.all)}.`;
+    } else {
+      amount = freeAmount;
+    }
   } else if (mode === "equal") {
     if (!bill.split) {
       blocked = "Elija entre cuántas personas se divide la cuenta.";

@@ -32,8 +32,24 @@ export interface ClientSplit {
   due: number;
 }
 
+/** SINPE más reciente de esta sesión. */
+export interface MySinpe {
+  id: string;
+  /** 'pending': en instrucciones (reported=false) o por confirmar (reported=true). */
+  status: "pending" | "paid" | "failed";
+  /** Lo que baja el saldo. El cliente transfiere amount + tip. */
+  amount: number;
+  tip: number;
+  code: string | null;
+  reported: boolean;
+  kind: "full" | "items" | "equal_share" | "amount";
+}
+
 export interface ClientBill {
   id: string;
+  /** 'total': el salonero digitó el total; no hay lista de platos. */
+  mode: "items" | "total";
+  mySinpe: MySinpe | null;
   lines: ClientLine[];
   totals: ClientTotals;
   split: ClientSplit | null;
@@ -48,7 +64,13 @@ export interface ClientBill {
 export interface ClientState {
   view: "no_bill" | "open" | "finished";
   tableNumber: number;
-  restaurant: { name: string; primaryColor: string; logoUrl: string | null; serviceRate: number; vatRate: number; pricesIncludeTaxes: boolean };
+  restaurant: {
+    name: string; primaryColor: string; logoUrl: string | null; serviceRate: number; vatRate: number; pricesIncludeTaxes: boolean;
+    /** Datos para el SINPE (en la demo, un número de prueba). Null si el restaurante no lo configuró. */
+    sinpe: { number: string; holder: string; test: boolean } | null;
+    /** Métodos que ofrece este restaurante. Un restaurante real solo ofrece SINPE. */
+    methods: PayMethod[];
+  };
   serverTime: string;
   /** Id de la cuenta actual (o de la última, si ya terminó). Cambia cuando abren una cuenta nueva. */
   billId: string | null;
@@ -57,7 +79,7 @@ export interface ClientState {
   bill: ClientBill | null;
 }
 
-export type PayMode = "all" | "items" | "equal";
+export type PayMode = "all" | "items" | "equal" | "amount";
 export type PayMethod = "card" | "apple_pay" | "google_pay" | "sinpe";
 export type TipChoice = { type: "percent"; value: 0 | 5 | 10 } | { type: "amount"; value: number };
 

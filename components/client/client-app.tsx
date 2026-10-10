@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckIcon, LockIcon, ShieldCheckIcon, WifiOffIcon } from "lucide-react";
+import { CheckIcon, LockIcon, ShieldCheckIcon, TriangleAlertIcon, WifiOffIcon } from "lucide-react";
 
 import type { ClientState, InvoiceInput, PayMethod, PayMode, TipChoice, Unavailable } from "@/lib/client/types";
 import { earliestReservation, quote, selectableLines } from "@/lib/client/quote";
 import { formatCRC } from "@/lib/money";
 import { ErrorNote } from "@/components/ui/error-note";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 import { BrandMark } from "@/components/brand/brand-mark";
@@ -20,6 +21,7 @@ import { displayTableNumber } from "@/lib/demo/display";
 import { call } from "./call";
 import { EqualSplit } from "./equal-split";
 import { PaySummary, type TipUi } from "./pay-summary";
+import { SinpeScreen } from "./sinpe-screen";
 import { SplitItemDialog } from "./split-item-dialog";
 import { useClientState } from "./use-client-state";
 
@@ -27,7 +29,27 @@ const MODES: { id: PayMode; title: string; sub: string }[] = [
   { id: "all", title: "Pagar toda la cuenta", sub: "Una sola persona paga todo" },
   { id: "items", title: "Pagar mis platos", sub: "Elija lo que usted consumió" },
   { id: "equal", title: "Partes iguales", sub: "Se divide entre varias personas" },
+  { id: "amount", title: "Pagar un monto", sub: "Usted decide cuánto paga" },
 ];
+/** Cuenta por platos: sin monto libre. Cuenta de solo el total: sin platos. */
+const MODES_BY_BILL = { items: ["all", "items", "equal"], total: ["all", "equal", "amount"] } as const;
+
+const SEEN_KEY = "divimesa-sinpe-seen";
+function readSeen(): string[] {
+  try {
+    const v = JSON.parse(window.localStorage.getItem(SEEN_KEY) ?? "[]") as unknown;
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string").slice(-20) : [];
+  } catch {
+    return [];
+  }
+}
+function writeSeen(ids: string[]) {
+  try {
+    window.localStorage.setItem(SEEN_KEY, JSON.stringify(ids.slice(-20)));
+  } catch {
+    /* sin almacenamiento: el aviso solo se quita hasta recargar */
+  }
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -53,6 +75,10 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
   const [tipUi, setTipUi] = useState<TipUi>("none");
   const [otherTip, setOtherTip] = useState("");
   const [method, setMethod] = useState<PayMethod>("card");
+  const [freeText, setFreeText] = useState("");
+  const [seen, setSeen] = useState<string[] | null>(null); // avisos de SINPE ya cerrados (null: aún no se leyó)
+  const [reporting, setReporting] = useState(false);
+  const [sinpeError, setSinpeError] = useState<string | null>(null);
   const [invoice, setInvoice] = useState<InvoiceInput>({});
   const [notice, setNotice] = useState<string | null>(flash === "declined" ? DECLINED : null);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +104,11 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
     const bill = next.bill;
     if (!bill) return;
     const pb = prev.bill;
+
+    // Terminó el SINPE de esta sesión (confirmado o rechazado): se vuelve a la cuenta sin selección.
+    if (pb?.mySinpe?.status === "pending" && bill.mySinpe?.id === pb.mySinpe.id && bill.mySinpe.status !== "pending") {
+      changeMode(null); setSel([]); setSinpeError(null);
+    }
 
     // Primera lectura: recupera lo que esta sesión ya tenía apartado (recarga de la página).
     if (firstSync.current) {
@@ -122,6 +153,10 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
   useEffect(() => {
     if (flash) window.history.replaceState(null, "", window.location.pathname);
   }, [flash]);
+  useEffect(() => {
+    const t = setTimeout(() => setSeen(readSeen()), 0);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -136,7 +171,12 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
     if (tipUi === "other") return { type: "amount", value: parseInt(otherTip.replace(/\D/g, ""), 10) || 0 };
     return { type: "percent", value: 0 };
   }, [tipUi, otherTip]);
-  const q = useMemo(() => quote(state, mode, selected, tip), [state, mode, selected, tip]);
+  const freeAmount = parseInt(freeText.replace(/\D/g, ""), 10) || 0;
+  const q = useMemo(() => quote(state, mode, selected, tip, freeAmount), [state, mode, selected, tip, freeAmount]);
+  const methods = state.restaurant.methods;
+  const effectiveMethod: PayMethod = methods.includes(method) ? method : methods[0] ?? "sinpe";
+  const sinpeInfo = state.restaurant.sinpe;
+  const noSinpe = !methods.includes("card") && !sinpeInfo; // restaurante real sin SINPE configurado
   const invoiceError = invoiceProblem(invoice);
 
   const reserve = useCallback(async (ids: string[]) => {
@@ -198,11 +238,18 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
     if (timer.current) clearTimeout(timer.current);
     setSubmitting(true); setError(null);
     const res = await call<{ redirectUrl?: string; unavailable?: Unavailable[]; state?: ClientState }>("/api/payments", "POST", {
-      token, mode, itemIds: mode === "items" ? selRef.current : undefined, method, tip, invoice: cleanInvoice(invoice),
+      token, mode, itemIds: mode === "items" ? selRef.current : undefined, amount: mode === "amount" ? freeAmount : undefined,
+      method: effectiveMethod, tip, invoice: cleanInvoice(invoice),
     });
     if (res.json?.ok && res.json.redirectUrl) {
       window.location.assign(res.json.redirectUrl);
       return; // se queda en "Un momento…" hasta que cambie la página
+    }
+    if (res.json?.ok && effectiveMethod === "sinpe" && res.json.state) {
+      // SINPE: no hay pasarela. El estado trae la pantalla de instrucciones (my_sinpe).
+      setSubmitting(false); setSinpeError(null);
+      apply(res.json.state);
+      return;
     }
     setSubmitting(false);
     if (res.json?.state) apply(res.json.state);
@@ -213,6 +260,31 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
     } else {
       setError(res.status === 0 ? "Sin conexión. Intente de nuevo." : (res.json?.error ?? "No se pudo iniciar el pago."));
     }
+  }
+
+  async function reportSinpe(payerName: string) {
+    const id = bill?.mySinpe?.id;
+    if (!id || reporting) return;
+    setReporting(true); setSinpeError(null);
+    const res = await call<{ state?: ClientState }>(`/api/payments/${id}/report`, "POST", { payerName: payerName.trim() || undefined });
+    setReporting(false);
+    if (res.json?.ok && res.json.state) apply(res.json.state);
+    else setSinpeError(res.status === 0 ? "Sin conexión. Intente de nuevo." : (res.json?.error ?? "No se pudo avisar al restaurante. Intente de nuevo."));
+  }
+
+  async function backFromSinpe() {
+    const id = bill?.mySinpe?.id;
+    if (!id) return;
+    setReporting(true); setSinpeError(null);
+    await call(`/api/payments/${id}/cancel`, "POST");
+    setReporting(false);
+    await refresh();
+  }
+
+  function closeNotice(id: string) {
+    const next = [...(seen ?? []), id];
+    setSeen(next);
+    writeSeen(next);
   }
 
   const remainingMs = bill ? (() => {
@@ -279,7 +351,34 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
             </p>
           ) : null}
 
+          {bill.mySinpe && bill.mySinpe.status !== "pending" && seen !== null && !seen.includes(bill.mySinpe.id) ? (
+            bill.mySinpe.status === "paid" ? (
+              <div role="status" className="flex flex-col gap-2 rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-950">
+                <p className="flex items-center gap-2 text-lg font-bold"><CheckIcon className="size-5" aria-hidden /> Pago confirmado</p>
+                <p className="text-sm">El restaurante recibió su SINPE de {formatCRC(bill.mySinpe.amount + bill.mySinpe.tip)}. ¡Gracias!</p>
+                <button type="button" className="min-h-11 self-start rounded-lg border border-emerald-400 bg-white px-4 text-sm font-semibold"
+                  onClick={() => closeNotice(bill.mySinpe!.id)}>Listo</button>
+              </div>
+            ) : (
+              <div role="alert" className="flex flex-col gap-2 rounded-2xl border-2 border-amber-400 bg-amber-50 p-4 text-amber-950">
+                <p className="flex items-center gap-2 text-lg font-bold"><TriangleAlertIcon className="size-5" aria-hidden /> No encontramos su SINPE</p>
+                <p className="text-sm">El restaurante no encontró su SINPE. Hable con su salonero.</p>
+                <button type="button" className="min-h-11 self-start rounded-lg border border-amber-400 bg-white px-4 text-sm font-semibold"
+                  onClick={() => closeNotice(bill.mySinpe!.id)}>Entendido</button>
+              </div>
+            )
+          ) : null}
+
+          {bill.mySinpe?.status === "pending" && sinpeInfo ? (
+            <SinpeScreen mine={bill.mySinpe} sinpe={sinpeInfo} busy={reporting} error={sinpeError}
+              onReport={(n) => void reportSinpe(n)} onBack={() => void backFromSinpe()}
+              onDemoConfirm={demo ? () => { void fetch(`/api/demo/mesa/${token}/confirm`, { method: "POST" }).then(() => refresh()); } : undefined} />
+          ) : null}
+
+          {!(bill.mySinpe?.status === "pending" && sinpeInfo) ? (
+          <>
           <section aria-label="Cuenta">
+            {bill.mode === "items" ? (
             <ul className="divide-y rounded-2xl border bg-card">
               {bill.lines.map((l) => {
                 const paid = l.status === "paid";
@@ -313,10 +412,11 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
                 );
               })}
             </ul>
-            <dl className="mt-3 flex flex-col gap-1 px-1 text-sm">
-              <Row label="Subtotal" value={bill.totals.subtotal} />
-              {bill.totals.service > 0 ? <Row label={`Servicio ${Math.round(state.restaurant.serviceRate * 100 * 100) / 100} %`} value={bill.totals.service} /> : null}
-              {bill.totals.vat > 0 ? <Row label="IVA" value={bill.totals.vat} /> : null}
+            ) : null}
+            <dl className={cn("flex flex-col gap-1 px-1 text-sm", bill.mode === "items" ? "mt-3" : "rounded-2xl border bg-card p-4 text-base")}>
+              {bill.mode === "items" ? <Row label="Subtotal" value={bill.totals.subtotal} /> : null}
+              {bill.mode === "items" && bill.totals.service > 0 ? <Row label={`Servicio ${Math.round(state.restaurant.serviceRate * 100 * 100) / 100} %`} value={bill.totals.service} /> : null}
+              {bill.mode === "items" && bill.totals.vat > 0 ? <Row label="IVA" value={bill.totals.vat} /> : null}
               <Row label="Total" value={bill.totals.total} strong />
               {bill.totals.paid > 0 ? <Row label="Pagado" value={-bill.totals.paid} /> : null}
               {bill.totals.paid > 0 ? <Row label="Saldo" value={bill.totals.balance} strong /> : null}
@@ -325,7 +425,7 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
 
           <section aria-label="Cómo desea pagar" className="flex flex-col gap-2">
             <h2 className="text-sm font-medium text-muted-foreground">¿Cómo desea pagar?</h2>
-            {MODES.map((m) => {
+            {MODES.filter((m) => (MODES_BY_BILL[bill.mode] as readonly PayMode[]).includes(m.id)).map((m) => {
               const off = m.id === "items" && !!bill.split;
               return (
                 <button key={m.id} type="button" disabled={off} aria-pressed={mode === m.id} onClick={() => pickMode(m.id)}
@@ -351,13 +451,34 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
 
           {mode === "equal" ? <EqualSplit bill={bill} busy={busy} onStart={startEqual} /> : null}
 
-          {mode && !(mode === "equal" && !bill.split) ? (
+          {mode === "amount" ? (
+            <div className="flex flex-col gap-2 rounded-2xl border p-4">
+              <label htmlFor="monto-libre" className="text-lg font-semibold">¿Cuánto va a pagar?</label>
+              <Input id="monto-libre" inputMode="numeric" autoComplete="off" placeholder="₡ 0" className="h-14 text-center text-2xl"
+                value={freeText} onChange={(e) => setFreeText(e.target.value)} />
+              <p className="text-sm text-muted-foreground">
+                Puede pagar hasta {formatCRC(bill.amounts.all)}. Solo colones enteros.
+              </p>
+              {bill.amounts.all > 0 ? (
+                <button type="button" className="min-h-11 self-start rounded-lg border px-3 text-sm font-medium"
+                  onClick={() => setFreeText(String(bill.amounts.all))}>Todo lo que falta ({formatCRC(bill.amounts.all)})</button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {noSinpe ? (
+            <p role="status" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+              Este restaurante todavía no recibe pagos por aquí. Pague con su salonero.
+            </p>
+          ) : mode && !(mode === "equal" && !bill.split) ? (
             <PaySummary quote={q} tipUi={tipUi} onTipUi={setTipUi} otherTip={otherTip} onOtherTip={setOtherTip}
-              method={method} onMethod={setMethod} invoice={invoice} onInvoice={setInvoice} invoiceError={invoiceError}
+              methods={methods} method={effectiveMethod} onMethod={setMethod} invoice={invoice} onInvoice={setInvoice} invoiceError={invoiceError}
               disabledReason={disabledReason} submitting={submitting} onPay={pay} />
           ) : null}
 
           {error ? <ErrorNote>{error}</ErrorNote> : null}
+          </>
+          ) : null}
         </>
       ) : null}
 
@@ -367,7 +488,11 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
         </summary>
         <ul className="flex flex-col gap-1.5 px-3 pb-3 text-muted-foreground">
           <li>Solo ve la cuenta de su mesa. No instala nada ni crea una cuenta.</li>
-          <li>En esta página no se escriben datos de tarjeta: el pago se completa en la pantalla del proveedor de pagos.</li>
+          {methods.includes("card") ? (
+            <li>En esta página no se escriben datos de tarjeta: el pago se completa en la pantalla del proveedor de pagos.</li>
+          ) : (
+            <li>El pago es un SINPE Móvil que usted hace en su banco, directo al restaurante. Divimesa no recibe su dinero ni le pide datos de tarjeta.</li>
+          )}
           <li>Los datos de factura son opcionales y solo se usan para su comprobante.</li>
           <li>Si algo no le parece bien, pídale ayuda al salonero antes de pagar.</li>
         </ul>

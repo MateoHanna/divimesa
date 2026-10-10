@@ -4,23 +4,23 @@ import { panelEvents } from "./events";
 import type { PanelPayment, PanelState, PanelTable, TableStatus } from "./types";
 
 const pay = (id: string, amount: number, paidAt: string, o: Partial<PanelPayment> = {}): PanelPayment =>
-  ({ id, amount, tip: 0, overpaid: 0, method: "card", source: "qr", kind: "items", paidAt, items: [], ...o });
+  ({ id, amount, tip: 0, overpaid: 0, method: "card", source: "qr", kind: "items", paidAt, items: [], code: null, payerName: null, invoice: null, ...o });
 
 function table(number: number, status: TableStatus, payments: PanelPayment[] = []): PanelTable {
   return {
     id: `t${number}`, number, status,
     bill: status === "free" ? null : {
-      id: `b${number}`, status: status === "paid" ? "paid" : "open", openedAt: "", paidAt: null, lines: [], split: null, payments,
+      id: `b${number}`, status: status === "paid" ? "paid" : "open", openedAt: "", paidAt: null, lines: [], split: null, payments, pending: [],
       totals: { itemsSum: 0, subtotal: 0, service: 0, vat: 0, total: 1000, paid: 0, balance: 0 },
     },
   } as PanelTable;
 }
 const state = (...tables: PanelTable[]): PanelState =>
-  ({ restaurant: { id: "r", name: "R", primaryColor: "#000000", logoUrl: null, showDeclineDemo: false }, tables, menu: [], serverTime: "" });
+  ({ restaurant: { id: "r", name: "R", primaryColor: "#000000", logoUrl: null, showDeclineDemo: false, billMode: "items", isDemo: false, sinpeNumber: null, sinpeHolder: null }, tables, menu: [], serverTime: "" });
 
 describe("panelEvents", () => {
   it("la primera lectura no genera eventos", () => {
-    expect(panelEvents(null, state(table(1, "partial", [pay("p1", 500, "2026-01-01T00:00:00Z")])))).toEqual({ payments: [], paidWithoutPayment: [] });
+    expect(panelEvents(null, state(table(1, "partial", [pay("p1", 500, "2026-01-01T00:00:00Z")])))).toEqual({ pending: [], payments: [], paidWithoutPayment: [] });
   });
 
   it("un pago nuevo trae mesa, monto, propina y método", () => {
@@ -60,5 +60,18 @@ describe("panelEvents", () => {
   it("una mesa que ya estaba pagada no vuelve a avisar", () => {
     const p = pay("p1", 100, "2026-01-01T00:00:01Z");
     expect(panelEvents(state(table(6, "paid", [p])), state(table(6, "paid", [p]))).paidWithoutPayment).toEqual([]);
+  });
+
+  it("un SINPE nuevo por confirmar genera un evento con monto + propina", () => {
+    const sinpe = { id: "s1", amount: 10000, tip: 1000, kind: "full" as const, code: "M2-7K2", payerName: "Ana", reportedAt: "2026-01-01T00:00:02Z", invoice: null };
+    const prev = state(table(2, "open"));
+    const open = table(2, "open");
+    open.bill!.pending = [sinpe];
+    const e = panelEvents(prev, state(open));
+    expect(e.pending).toEqual([{ paymentId: "s1", tableId: "t2", tableNumber: 2, billId: "b2", amount: 11000, tip: 1000, code: "M2-7K2", payerName: "Ana" }]);
+    // Ya estaba por confirmar: no suena otra vez.
+    expect(panelEvents(state(open), state(open)).pending).toEqual([]);
+    // Primera lectura: sin eventos.
+    expect(panelEvents(null, state(open)).pending).toEqual([]);
   });
 });

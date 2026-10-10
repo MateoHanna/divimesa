@@ -3,6 +3,7 @@ import { computeTotals } from "@/lib/money";
 import type {
   LineGroup,
   PanelBill,
+  PanelInvoice,
   PanelLine,
   PanelMenuItem,
   PanelPayment,
@@ -15,6 +16,10 @@ import type {
 export interface RestaurantRow {
   id?: string;
   show_decline_demo?: boolean;
+  bill_mode?: "items" | "total";
+  is_demo?: boolean;
+  sinpe_number?: string | null;
+  sinpe_holder?: string | null;
   logo_url?: string | null;
   name: string;
   primary_color: string;
@@ -28,6 +33,7 @@ export interface BillRow {
   table_id: string;
   status: "open" | "paid" | "closed";
   paid_amount: number;
+  fixed_total?: number | null;
   split_mode: string | null;
   split_parts: number | null;
   split_share_amount: number | null;
@@ -58,6 +64,16 @@ export interface PaymentRow {
   status: "pending" | "paid" | "failed";
   paid_at: string | null;
   created_at: string;
+  reference_code?: string | null;
+  payer_name?: string | null;
+  reported_at?: string | null;
+}
+export interface InvoiceRow {
+  payment_id: string;
+  name: string | null;
+  id_type: "fisica" | "juridica" | null;
+  id_number: string | null;
+  email: string | null;
 }
 export interface PaymentItemRow { payment_id: string; bill_item_id: string }
 export interface MenuRow { id: string; name: string; category: string; price: number; sort_order: number }
@@ -75,7 +91,12 @@ export function buildBill(
   restaurant: RestaurantRow,
   now: Date,
   paymentItems: PaymentItemRow[] = [],
+  invoices: InvoiceRow[] = [],
 ): PanelBill {
+  const invoiceOf = (paymentId: string): PanelInvoice | null => {
+    const x = invoices.find((i) => i.payment_id === paymentId);
+    return x ? { name: x.name, idType: x.id_type, idNumber: x.id_number, email: x.email } : null;
+  };
   const nameById = new Map(items.map((i) => [i.id, i.name]));
   const coveredBy = (paymentId: string) => {
     const counts = new Map<string, number>();
@@ -95,18 +116,24 @@ export function buildBill(
       name: i.name,
       unitPrice: i.unit_price * i.quantity,
       status: i.status as "pending" | "paid",
-      reserved: i.status === "pending" && !!i.reserved_until && new Date(i.reserved_until) > now,
+      // 'infinity': apartado por un SINPE que el salonero todavía no confirma.
+      reserved: i.status === "pending" && !!i.reserved_until && (i.reserved_until === "infinity" || new Date(i.reserved_until) > now),
       splitGroupId: i.split_group_id ?? null,
     }));
-  const itemsSum = lines.reduce((s, l) => s + l.unitPrice, 0);
-  const t = computeTotals(itemsSum, {
-    serviceRate: Number(restaurant.service_rate),
-    vatRate: Number(restaurant.vat_rate),
-    pricesIncludeTaxes: restaurant.prices_include_taxes,
-  });
+  const fixed = bill.fixed_total ?? null;
+  const itemsSum = fixed ?? lines.reduce((s, l) => s + l.unitPrice, 0);
+  // En una cuenta de solo el total, el total digitado ya incluye servicio e impuestos: no se suma nada.
+  const t = fixed !== null
+    ? { subtotal: fixed, service: 0, vat: 0, total: fixed }
+    : computeTotals(itemsSum, {
+        serviceRate: Number(restaurant.service_rate),
+        vatRate: Number(restaurant.vat_rate),
+        pricesIncludeTaxes: restaurant.prices_include_taxes,
+      });
   const paid = bill.paid_amount;
   return {
     id: bill.id,
+    mode: fixed !== null ? "total" : "items",
     status: bill.status === "paid" ? "paid" : "open",
     openedAt: bill.opened_at,
     paidAt: bill.paid_at,
@@ -129,6 +156,22 @@ export function buildBill(
         kind: p.kind,
         paidAt: p.paid_at as string,
         items: p.kind === "items" ? coveredBy(p.id) : [],
+        code: p.reference_code ?? null,
+        payerName: p.payer_name ?? null,
+        invoice: invoiceOf(p.id),
+      })),
+    pending: payments
+      .filter((p) => p.status === "pending" && p.method === "sinpe" && !!p.reported_at)
+      .sort((a, b) => (a.reported_at as string).localeCompare(b.reported_at as string))
+      .map((p) => ({
+        id: p.id,
+        amount: p.amount,
+        tip: p.tip_amount,
+        kind: p.kind,
+        code: p.reference_code ?? null,
+        payerName: p.payer_name ?? null,
+        reportedAt: p.reported_at as string,
+        invoice: invoiceOf(p.id),
       })),
   };
 }
@@ -140,6 +183,7 @@ export function buildPanelState(input: {
   items: ItemRow[];
   payments: PaymentRow[];
   paymentItems?: PaymentItemRow[];
+  invoices?: InvoiceRow[];
   menu: MenuRow[];
   now: Date;
 }): PanelState {
@@ -160,6 +204,7 @@ export function buildPanelState(input: {
             restaurant,
             now,
             input.paymentItems ?? [],
+            input.invoices ?? [],
           )
         : null;
       return { id: t.id, number: t.number, status: tableStatus(bill), bill };
@@ -174,6 +219,10 @@ export function buildPanelState(input: {
     restaurant: {
       id: restaurant.id ?? "", name: restaurant.name, primaryColor: restaurant.primary_color, logoUrl: restaurant.logo_url ?? null,
       showDeclineDemo: !!restaurant.show_decline_demo,
+      billMode: restaurant.bill_mode === "total" ? "total" : "items",
+      isDemo: !!restaurant.is_demo,
+      sinpeNumber: restaurant.sinpe_number ?? null,
+      sinpeHolder: restaurant.sinpe_holder ?? null,
     },
     tables,
     menu,

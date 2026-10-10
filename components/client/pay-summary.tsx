@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,8 @@ export interface SummaryProps {
   onTipUi: (t: TipUi) => void;
   otherTip: string;
   onOtherTip: (v: string) => void;
+  /** Métodos que ofrece el restaurante. Un restaurante real solo ofrece SINPE Móvil. */
+  methods: PayMethod[];
   method: PayMethod;
   onMethod: (m: PayMethod) => void;
   invoice: InvoiceInput;
@@ -92,14 +95,19 @@ export function PaySummary(p: SummaryProps) {
             <Input aria-label="Correo" placeholder="Correo para la factura" type="email" autoComplete="email" className="h-12"
               value={p.invoice.email ?? ""} onChange={(e) => p.onInvoice({ ...p.invoice, email: e.target.value })} />
             {p.invoiceError ? <p role="alert" className="text-sm text-destructive">{p.invoiceError}</p> : null}
+            <p className="text-xs text-muted-foreground">
+              Sus datos se usan solo para emitir su factura.{" "}
+              <Link href="/privacidad" target="_blank" className="font-medium underline underline-offset-2">Política de privacidad</Link>
+            </p>
           </div>
         ) : null}
       </div>
 
+      {p.methods.length > 1 ? (
       <fieldset>
         <legend className="mb-2 text-sm font-medium">Método de pago</legend>
         <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Método de pago">
-          {METHODS.map((m) => (
+          {METHODS.filter((m) => p.methods.includes(m.id)).map((m) => (
             <button key={m.id} type="button" role="radio" aria-checked={p.method === m.id} onClick={() => p.onMethod(m.id)}
               className={cn("min-h-14 rounded-xl border text-base font-medium",
                 p.method === m.id ? "border-primary bg-primary text-primary-foreground" : "bg-background")}>
@@ -108,6 +116,11 @@ export function PaySummary(p: SummaryProps) {
           ))}
         </div>
       </fieldset>
+      ) : (
+        <p className="rounded-xl bg-muted p-3 text-sm">
+          El pago es por <strong>SINPE Móvil</strong>, directo al restaurante. En el siguiente paso le damos el número y el monto.
+        </p>
+      )}
 
       <div className="flex flex-col gap-2">
         {q.tip > 0 ? (
@@ -115,7 +128,7 @@ export function PaySummary(p: SummaryProps) {
         ) : null}
         {p.disabledReason ? <p role="status" className="text-sm text-muted-foreground">{p.disabledReason}</p> : null}
         <Button size="xl" className="h-16 text-xl" disabled={!!p.disabledReason || p.submitting} onClick={p.onPay}>
-          {p.submitting ? "Un momento…" : `Pagar ${formatCRC(q.total)}`}
+          {p.submitting ? "Un momento…" : p.method === "sinpe" ? `Pagar ${formatCRC(q.total)} por SINPE Móvil` : `Pagar ${formatCRC(q.total)}`}
         </Button>
       </div>
     </section>

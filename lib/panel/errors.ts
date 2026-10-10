@@ -28,6 +28,19 @@ const ERRORS: Record<string, { status: number; message: string }> = {
   table_not_found: { status: 404, message: "La mesa no existe." },
   table_has_bill: { status: 409, message: "Esa mesa ya tiene una cuenta abierta." },
   payment_not_found: { status: 404, message: "No se encontró el pago." },
+  total_required: { status: 400, message: "Escriba el total de la cuenta para abrir la mesa." },
+  wrong_mode: { status: 409, message: "El restaurante no está en modo «solo el total»." },
+  invalid_total: { status: 400, message: "El total tiene que ser un monto entero de colones, mayor a cero." },
+  total_bill: { status: 409, message: "Esta cuenta es de solo el total y no tiene platos." },
+  not_total_bill: { status: 409, message: "Esta cuenta no es de solo el total." },
+  sinpe_pending: { status: 409, message: "Hay un SINPE por confirmar. Toque «Recibido» o «No llegó» primero." },
+  payment_not_pending: { status: 409, message: "Ese pago ya no está por confirmar." },
+  payment_already_paid: { status: 409, message: "Ese pago ya se confirmó." },
+  simulated_only_demo: { status: 409, message: "Los pagos simulados solo existen en el restaurante de demostración." },
+  invalid_sinpe_number: { status: 400, message: "El número de SINPE Móvil debe tener 8 dígitos." },
+  invalid_sinpe_holder: { status: 400, message: "Escriba el nombre del titular tal como sale en el banco." },
+  not_demo: { status: 409, message: "Esta opción solo existe en el restaurante de demostración." },
+  sinpe_not_configured: { status: 409, message: "Falta el número de SINPE Móvil y el nombre del titular." },
 };
 
 export interface MappedError { status: number; code: string; message: string }
