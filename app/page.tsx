@@ -44,26 +44,26 @@ const STEPS: { title: string; text: string; note?: string }[] = [
 export default function Home() {
   return (
     <div className="flex min-h-dvh flex-col bg-white text-[#1C1C1E]">
-      <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-5 py-5 sm:px-8">
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
         <DivimesaLogo variant="wordmark" className="h-9" />
         <Link href="/panel" className="inline-flex min-h-10 items-center rounded-xl border border-[#1C1C1E]/20 px-4 text-sm font-semibold hover:bg-[#1C1C1E]/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D91E18]">
           Ingresar
         </Link>
       </header>
 
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-16 px-5 pb-16 sm:gap-24 sm:px-8">
-        <section className="grid items-center gap-8 pt-2 text-center lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-10 lg:pt-4 lg:text-left">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-16 px-5 pb-16 sm:gap-24 sm:px-8">
+        <section className="grid items-center gap-8 pt-2 text-center lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-10 lg:pt-4 lg:text-left">
           <div className="contents lg:flex lg:flex-col lg:items-start lg:gap-6">
-            <h1 className="order-1 mx-auto max-w-[20ch] lg:order-none lg:mx-0 text-[2.4rem] leading-[1.04] font-extrabold tracking-[-0.03em] text-balance sm:text-6xl lg:text-[3.1rem] xl:text-[3.4rem]">
+            <h1 className="order-1 mx-auto max-w-[20ch] lg:order-none lg:mx-0 text-[2.4rem] leading-[1.04] font-extrabold tracking-[-0.03em] text-balance sm:text-6xl lg:text-[2.9rem]">
               Cada quien paga su parte desde la mesa, sin esperar el datáfono
             </h1>
             <div className="flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row order-3 sm:self-center lg:order-none lg:self-start">
               <Link href="/demo/mesa"
-                className="inline-flex h-14 items-center justify-center whitespace-nowrap rounded-2xl bg-[#D91E18] px-6 text-lg font-semibold text-white transition-colors hover:bg-[#BF1A14] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D91E18]">
+                className="inline-flex h-14 items-center justify-center whitespace-nowrap lg:h-12 lg:px-5 lg:text-base rounded-2xl bg-[#D91E18] px-6 text-lg font-semibold text-white transition-colors hover:bg-[#BF1A14] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D91E18]">
                 Pruébelo usted mismo
               </Link>
               <a href={BRAND.whatsappVideo} target="_blank" rel="noopener noreferrer"
-                className="inline-flex h-14 items-center justify-center whitespace-nowrap rounded-2xl border-2 border-[#1C1C1E] px-6 text-lg font-semibold transition-colors hover:bg-[#1C1C1E] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1C1C1E]">
+                className="inline-flex h-14 items-center justify-center whitespace-nowrap lg:h-12 lg:px-5 lg:text-base rounded-2xl border-2 border-[#1C1C1E] px-6 text-lg font-semibold transition-colors hover:bg-[#1C1C1E] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1C1C1E]">
                 Escríbanos por WhatsApp
               </a>
             </div>
@@ -129,7 +129,7 @@ export default function Home() {
       </main>
 
       <footer className="border-t border-[#1C1C1E]/10">
-        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-6 text-sm text-[#1C1C1E]/65 sm:px-8">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-6 text-sm text-[#1C1C1E]/65 sm:px-8">
           <p>Divimesa, Costa Rica</p>
           <div className="flex flex-wrap gap-x-5 gap-y-2">
             <a className="underline underline-offset-4" href={`mailto:${BRAND.email}`}>{BRAND.email}</a>
