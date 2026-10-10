@@ -12,6 +12,6 @@ describe("marca Divimesa", () => {
     expect(contrastRatio(BRAND.scarletOnDark, "#1c1c1e")).toBeGreaterThanOrEqual(4.5);
   });
   it("el enlace de WhatsApp es el acordado", () => {
-    expect(BRAND.whatsapp).toBe("https://wa.me/50671731226");
+    expect(BRAND.whatsapp).toBe("https://wa.me/18063006454");
   });
 });

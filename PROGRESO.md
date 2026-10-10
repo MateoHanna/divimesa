@@ -93,7 +93,7 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 - Colores: escarlata `#D91E18` es el color por defecto del restaurante (migración 0009: columna, fila actual si seguía en `#0f766e`, y `factory_reset`). Si el dueño elige otro color, los botones lo siguen. Texto sobre el color elegido: blanco, casi negro `#111` o negro puro según contraste (4,5 o más garantizado, probado con 216 colores).
 - Errores en ámbar con ícono (`components/ui/error-note.tsx`, y `--destructive` es ámbar `#b45309`). El rojo queda solo para la marca. "pagado" sigue en verde.
 - Panel: nombre del restaurante en grande y logo de Divimesa chico al lado.
-- Portada `/`: frase, cuenta de ejemplo con platos tachados, tres pasos, botón a `https://wa.me/50671731226`, hueco de video (`VIDEO_SRC` en `app/page.tsx`; con una dirección ahí aparece el reproductor). Sin precios, tratando de usted.
+- Portada `/`: frase, cuenta de ejemplo con platos tachados, tres pasos, botón a `https://wa.me/18063006454`, hueco de video (`VIDEO_SRC` en `app/page.tsx`; con una dirección ahí aparece el reproductor). Sin precios, tratando de usted.
 - Vista previa al compartir: Open Graph y Twitter en `app/layout.tsx`, imagen `public/brand/og-divimesa.png` (1200x630), `metadataBase` fijo a `https://divimesa.com` (`lib/brand.ts`).
 - Verificado en un navegador del contenedor: la portada a 390 y 1280 px. Sin ver en pantalla: panel, cliente y `/demo` con la marca nueva.
 - Dominio: `https://divimesa.com/api/health` responde con esta app (mismo Supabase). No pude leer ni editar el proyecto de Vercel desde la sesión (403 de permisos), así que `APP_URL` sigue en `https://demo-qr-steel.vercel.app` y el redirect de `www` sin confirmar.
