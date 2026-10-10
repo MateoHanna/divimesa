@@ -89,7 +89,7 @@
   .animate-paid-flash, .animate-card-blink, .animate-card-blink-paid, .animate-notice-in, .animate-count-pop { animation: none; }
 }
 
-/* Modo grabación del video (/demo?grabar=1) */
+/* Modo grabación del video (/demo/en-vivo?grabar=1) */
 @keyframes caption-in {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: none; }

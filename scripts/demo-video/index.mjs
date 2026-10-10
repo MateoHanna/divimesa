@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Genera el video de la demo: levanta la app en local, abre /demo?grabar=1, graba el recorrido
+// Genera el video de la demo: levanta la app en local, abre /demo/en-vivo?grabar=1, graba el recorrido
 // y arma el mp4 con la hora real de cada cuadro. Uso: npm run demo:video -- --ayuda
 
 import { spawn } from "node:child_process";
@@ -185,7 +185,7 @@ async function main() {
       const dir = path.join(tmpRoot, view);
       await fsp.mkdir(dir, { recursive: true });
       try {
-        await page.goto(`${base}/demo?grabar=1&vista=${vista}`);
+        await page.goto(`${base}/demo/en-vivo?grabar=1&vista=${vista}`);
         await page.waitForFunction(() => window.__demoVideo?.ready === true, null, { timeout: 30000 });
         const clientFrame = await (await page.locator('iframe[title^="Página del cliente"]').elementHandle()).contentFrame();
         await clientFrame.locator('section[aria-label="Cuenta"]').waitFor({ timeout: 30000 });

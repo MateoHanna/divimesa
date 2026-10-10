@@ -1,5 +1,5 @@
 // El recorrido del video: toca los botones reales de la página del cliente (dentro del celular)
-// y le dice a la capa de /demo?grabar=1 qué texto y qué círculo mostrar.
+// y le dice a la capa de /demo/en-vivo?grabar=1 qué texto y qué círculo mostrar.
 
 import { T } from "./lib.mjs";
 
