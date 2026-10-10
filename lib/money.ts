@@ -4,15 +4,16 @@
  * se comparan con tests/fixtures/totals.json.
  */
 
-const crc = new Intl.NumberFormat("es-CR", {
-  style: "currency",
-  currency: "CRC",
-  maximumFractionDigits: 0,
-});
-
-/** Formato `₡12 500`. */
+/**
+ * Formato `₡12 500`, igual en cualquier navegador: no depende del locale (Safari de iPhone ponía punto).
+ * Separador de miles: espacio sin salto (U+00A0). Se agrupa desde 4 cifras (`₡2 500`), como
+ * lo hacía Chrome, para que no cambie nada de lo que ya se ve.
+ */
 export function formatCRC(amount: number): string {
-  return crc.format(amount);
+  const n = Math.round(amount);
+  const digits = String(Math.abs(n));
+  const grouped = digits.length >= 4 ? digits.replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0") : digits;
+  return `${n < 0 ? "-" : ""}₡${grouped}`;
 }
 
 function assertColones(value: number, name: string): void {

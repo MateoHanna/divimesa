@@ -16,6 +16,7 @@ import { useBroadcast } from "@/components/realtime/use-broadcast";
 import { AnimatedMoney } from "@/components/ui/animated-number";
 import { useJustPaid } from "@/components/ui/use-just-paid";
 import { brandVars } from "@/lib/branding";
+import { canDemoConfirm, orderedMethods } from "@/lib/client/methods";
 import { displayTableNumber } from "@/lib/demo/display";
 
 import { call } from "./call";
@@ -74,7 +75,7 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
   const [selected, setSelected] = useState<string[]>([]);
   const [tipUi, setTipUi] = useState<TipUi>("none");
   const [otherTip, setOtherTip] = useState("");
-  const [method, setMethod] = useState<PayMethod>("card");
+  const [method, setMethod] = useState<PayMethod>("sinpe");
   const [freeText, setFreeText] = useState("");
   const [seen, setSeen] = useState<string[] | null>(null); // avisos de SINPE ya cerrados (null: aún no se leyó)
   const [reporting, setReporting] = useState(false);
@@ -173,7 +174,7 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
   }, [tipUi, otherTip]);
   const freeAmount = parseInt(freeText.replace(/\D/g, ""), 10) || 0;
   const q = useMemo(() => quote(state, mode, selected, tip, freeAmount), [state, mode, selected, tip, freeAmount]);
-  const methods = state.restaurant.methods;
+  const methods = orderedMethods(state.restaurant.methods);
   const effectiveMethod: PayMethod = methods.includes(method) ? method : methods[0] ?? "sinpe";
   const sinpeInfo = state.restaurant.sinpe;
   const noSinpe = !methods.includes("card") && !sinpeInfo; // restaurante real sin SINPE configurado
@@ -372,7 +373,7 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
           {bill.mySinpe?.status === "pending" && sinpeInfo ? (
             <SinpeScreen mine={bill.mySinpe} sinpe={sinpeInfo} busy={reporting} error={sinpeError}
               onReport={(n) => void reportSinpe(n)} onBack={() => void backFromSinpe()}
-              onDemoConfirm={demo ? () => { void fetch(`/api/demo/mesa/${token}/confirm`, { method: "POST" }).then(() => refresh()); } : undefined} />
+              onDemoConfirm={canDemoConfirm(state, demo) ? () => { void fetch(`/api/demo/mesa/${token}/confirm`, { method: "POST" }).then(() => refresh()); } : undefined} />
           ) : null}
 
           {!(bill.mySinpe?.status === "pending" && sinpeInfo) ? (

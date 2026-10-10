@@ -7,17 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Quote } from "@/lib/client/quote";
 import type { InvoiceInput, PayMethod } from "@/lib/client/types";
+import { isComingSoon, orderedMethods } from "@/lib/client/methods";
 import { formatCRC } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
 export type TipUi = "none" | "5" | "10" | "other";
 
-const METHODS: { id: PayMethod; label: string }[] = [
-  { id: "card", label: "Tarjeta" },
-  { id: "apple_pay", label: "Apple Pay" },
-  { id: "google_pay", label: "Google Pay" },
-  { id: "sinpe", label: "SINPE Móvil" },
-];
+const LABELS: Record<PayMethod, string> = {
+  sinpe: "SINPE Móvil", card: "Tarjeta", apple_pay: "Apple Pay", google_pay: "Google Pay",
+};
 
 export interface SummaryProps {
   quote: Quote;
@@ -107,14 +105,18 @@ export function PaySummary(p: SummaryProps) {
       <fieldset>
         <legend className="mb-2 text-sm font-medium">Método de pago</legend>
         <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Método de pago">
-          {METHODS.filter((m) => p.methods.includes(m.id)).map((m) => (
-            <button key={m.id} type="button" role="radio" aria-checked={p.method === m.id} onClick={() => p.onMethod(m.id)}
-              className={cn("min-h-14 rounded-xl border text-base font-medium",
-                p.method === m.id ? "border-primary bg-primary text-primary-foreground" : "bg-background")}>
-              {m.label}
+          {orderedMethods(p.methods).map((m) => (
+            <button key={m} type="button" role="radio" aria-checked={p.method === m} onClick={() => p.onMethod(m)}
+              className={cn("flex min-h-14 flex-col items-center justify-center rounded-xl border px-1 text-base font-medium",
+                p.method === m ? "border-primary bg-primary text-primary-foreground" : "bg-background")}>
+              {LABELS[m]}
+              {isComingSoon(m) ? <span className="text-xs font-normal opacity-80">Próximamente</span> : null}
             </button>
           ))}
         </div>
+        {isComingSoon(p.method) ? (
+          <p className="mt-2 text-xs text-muted-foreground">Próximamente. En esta demo se simula el pago: no se cobra nada.</p>
+        ) : null}
       </fieldset>
       ) : (
         <p className="rounded-xl bg-muted p-3 text-sm">

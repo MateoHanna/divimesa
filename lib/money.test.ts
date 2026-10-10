@@ -21,6 +21,16 @@ describe("formatCRC", () => {
     expect(plain(formatCRC(1234567))).toBe("₡1 234 567");
     expect(plain(formatCRC(0))).toBe("₡0");
   });
+  it("no depende del locale del navegador: siempre espacio sin salto, nunca punto ni coma", () => {
+    expect(formatCRC(10701)).toBe("₡10\u00a0701");
+    expect(formatCRC(1234567)).toBe("₡1\u00a0234\u00a0567");
+    expect(formatCRC(2500)).toBe("₡2\u00a0500");
+    expect(formatCRC(999)).toBe("₡999");
+    expect(formatCRC(-27500)).toBe("-₡27\u00a0500");
+    const orig = Number.prototype.toLocaleString;
+    Number.prototype.toLocaleString = function () { return "10.701"; };
+    try { expect(formatCRC(10701)).toBe("₡10\u00a0701"); } finally { Number.prototype.toLocaleString = orig; }
+  });
 });
 
 describe("computeTotals", () => {
