@@ -51,9 +51,10 @@ export function DemoMesa({ token, client, view, host, qrUrl }: DemoMesaProps) {
       <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-[auto_minmax(0,1fr)] items-start gap-10 px-6 py-6">
         <section aria-labelledby="lado-cliente" className="flex flex-col items-center gap-3">
           <h2 id="lado-cliente" className="text-xl font-extrabold">Así lo ve su cliente</h2>
-          <div className="relative h-[min(78dvh,760px)] min-h-[560px] w-[372px] rounded-[3rem] border-[10px] border-slate-900 bg-slate-900 shadow-2xl">
-            <div aria-hidden className="absolute top-2 left-1/2 z-10 h-5 w-24 -translate-x-1/2 rounded-full bg-slate-900" />
-            <iframe title="Página del cliente" src={`/m/${token}?embed=1`} className="size-full rounded-[2.2rem] bg-white" />
+          {/* El notch vive en su propia franja del marco: la página del cliente empieza debajo y nunca queda tapada. */}
+          <div className="relative flex h-[min(78dvh,760px)] min-h-[560px] w-[372px] flex-col rounded-[3rem] border-[10px] border-slate-900 bg-slate-900 shadow-2xl">
+            <div aria-hidden className="mx-auto mb-1.5 mt-1 h-5 w-24 shrink-0 rounded-full bg-black" />
+            <iframe title="Página del cliente" src={`/m/${token}?embed=1`} className="w-full flex-1 rounded-b-[2.2rem] rounded-t-lg bg-white" />
           </div>
         </section>
 
