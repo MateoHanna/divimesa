@@ -2,20 +2,25 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { DivimesaLogo } from "@/components/brand/divimesa-logo";
+import { DemoVideo } from "@/components/demo/demo-video";
 import { BRAND } from "@/lib/brand";
 import { computeTotals, formatCRC } from "@/lib/money";
 
-export const metadata: Metadata = {
-  title: { absolute: "Divimesa: cada quien paga su parte desde la mesa" },
-  alternates: { canonical: "/" },
-};
+const TITLE = "Pago y división de la cuenta por QR en la mesa";
+const DESCRIPTION = "Cada quien paga su parte desde el celular y el salonero lo ve al instante. Piloto gratis de 2 semanas para 5 restaurantes fundadores.";
+const POSTER = "/video/demo-poster.jpg";
 
-/**
- * Video de la demostración. Mientras esta variable esté vacía, la sección no se muestra.
- * Para activarla: subir el archivo (por ejemplo a public/brand/demo.mp4) y definir
- * NEXT_PUBLIC_DEMO_VIDEO_URL=/brand/demo.mp4 (o una dirección completa) y redesplegar.
- */
-const VIDEO_SRC = process.env.NEXT_PUBLIC_DEMO_VIDEO_URL?.trim() || null;
+export const metadata: Metadata = {
+  title: { absolute: `Divimesa: ${TITLE.charAt(0).toLowerCase()}${TITLE.slice(1)}` },
+  description: DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website", locale: "es_CR", siteName: "Divimesa", url: "/",
+    title: TITLE, description: DESCRIPTION,
+    images: [{ url: POSTER, width: 1280, height: 720, alt: "Divimesa: ¿La mesa quiere pagar por separado?" }],
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: [POSTER] },
+};
 
 const FOR_RESTAURANT = [
   { title: "El datáfono sigue funcionando igual", text: "Quien prefiera pagar con la tarjeta física o en efectivo lo sigue haciendo. El salonero registra ese pago en el panel y la cuenta se actualiza." },
@@ -40,26 +45,34 @@ export default function Home() {
       </header>
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-16 px-5 pb-16 sm:gap-24 sm:px-8">
-        <section className="grid items-center gap-10 pt-4 md:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] md:gap-14 md:pt-10">
-          <div className="flex flex-col items-start gap-6">
-            <h1 className="max-w-[16ch] text-[2.6rem] leading-[1.02] font-extrabold tracking-[-0.03em] sm:text-6xl">
-              Cada quien paga su parte desde la mesa, sin esperar el datáfono
-            </h1>
-            <p className="max-w-[46ch] text-lg leading-relaxed text-[#1C1C1E]/75">
-              Divimesa pone un código QR en cada mesa. Sus clientes ven la cuenta, eligen qué pagar y pagan desde el celular. Usted ve cada pago en el momento.
-            </p>
-            <a href={BRAND.whatsapp} target="_blank" rel="noopener noreferrer"
-              className="inline-flex h-14 items-center rounded-2xl bg-[#D91E18] px-7 text-lg font-semibold text-white transition-colors hover:bg-[#BF1A14] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D91E18]">
-              Hablemos por WhatsApp
+        <section className="flex flex-col items-center gap-8 pt-4 text-center md:pt-10">
+          <h1 className="max-w-[20ch] text-[2.4rem] leading-[1.04] font-extrabold tracking-[-0.03em] text-balance sm:text-6xl">
+            Cada quien paga su parte desde la mesa, sin esperar el datáfono
+          </h1>
+          <DemoVideo />
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+            <Link href="/demo/mesa"
+              className="inline-flex h-14 items-center justify-center rounded-2xl bg-[#D91E18] px-7 text-lg font-semibold text-white transition-colors hover:bg-[#BF1A14] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D91E18]">
+              Pruébelo usted mismo
+            </Link>
+            <a href={BRAND.whatsappVideo} target="_blank" rel="noopener noreferrer"
+              className="inline-flex h-14 items-center justify-center rounded-2xl border-2 border-[#1C1C1E] px-7 text-lg font-semibold transition-colors hover:bg-[#1C1C1E] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1C1C1E]">
+              Escribirme por WhatsApp
             </a>
           </div>
-
-          <Bill />
+          <div className="max-w-xl rounded-2xl bg-[#1C1C1E]/[0.04] px-6 py-4">
+            <p className="text-lg font-semibold leading-snug">Piloto gratis de 2 semanas para 5 restaurantes fundadores.</p>
+            <p className="mt-1 text-[#1C1C1E]/75">Sin instalación ni plazo mínimo.</p>
+          </div>
+          <p className="max-w-[52ch] text-lg leading-relaxed text-[#1C1C1E]/75">
+            Divimesa pone un código QR en cada mesa. Sus clientes ven la cuenta, eligen qué pagar y pagan desde el celular. Usted ve cada pago en el momento.
+          </p>
         </section>
 
         <section aria-labelledby="como-funciona" className="flex flex-col gap-8">
           <h2 id="como-funciona" className="text-3xl font-extrabold tracking-tight">Así paga una mesa</h2>
-          <ol className="grid gap-8 sm:grid-cols-3 sm:gap-6">
+          <div className="grid items-center gap-10 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:gap-14">
+          <ol className="grid gap-8">
             {STEPS.map((s, i) => (
               <li key={s.title} className="flex flex-col gap-2 border-t-2 border-[#1C1C1E] pt-4">
                 <span className="text-sm font-semibold text-[#D91E18]">Paso {i + 1}</span>
@@ -68,6 +81,8 @@ export default function Home() {
               </li>
             ))}
           </ol>
+          <Bill />
+          </div>
         </section>
 
         <section aria-labelledby="restaurante" className="flex flex-col gap-8">
@@ -80,27 +95,21 @@ export default function Home() {
               </li>
             ))}
           </ul>
-          <a href={BRAND.whatsapp} target="_blank" rel="noopener noreferrer"
+          <a href={BRAND.whatsappVideo} target="_blank" rel="noopener noreferrer"
             className="inline-flex min-h-14 max-w-xl items-center rounded-2xl border-2 border-[#D91E18] px-6 py-3 text-lg font-semibold leading-snug text-[#B3140F] transition-colors hover:bg-[#D91E18] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D91E18]">
             ¿Lo quiere ver con el nombre de su restaurante? Escríbanos por WhatsApp
           </a>
         </section>
 
-        {VIDEO_SRC ? (
-          <section aria-labelledby="video" className="flex flex-col gap-4">
-            <h2 id="video" className="text-3xl font-extrabold tracking-tight">Véalo funcionando</h2>
-            <div className="max-w-3xl overflow-hidden rounded-3xl bg-[#1C1C1E]">
-              <video className="aspect-video w-full" src={VIDEO_SRC} controls playsInline preload="metadata" />
-            </div>
-          </section>
-        ) : null}
       </main>
 
       <footer className="border-t border-[#1C1C1E]/10">
-        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 px-5 py-6 text-sm text-[#1C1C1E]/65 sm:px-8">
+        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-6 text-sm text-[#1C1C1E]/65 sm:px-8">
           <p>Divimesa, Costa Rica</p>
-          <div className="flex gap-5">
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            <a className="underline underline-offset-4" href={`mailto:${BRAND.email}`}>{BRAND.email}</a>
             <a className="underline underline-offset-4" href={BRAND.whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+            <a className="underline underline-offset-4" href={BRAND.instagram} target="_blank" rel="noopener noreferrer">Instagram {BRAND.instagramHandle}</a>
           </div>
         </div>
       </footer>
