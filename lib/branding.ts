@@ -37,7 +37,8 @@ export function readableOn(hex: string): "#ffffff" | "#111111" | "#000000" {
 /** Variables CSS de la marca: el color del restaurante y el texto legible encima. */
 export function brandVars(hex: string): Record<string, string> {
   const color = normalizeHex(hex) ?? "#D91E18";
-  return { "--brand": color, "--primary-foreground": readableOn(color) };
+  // --primary va directo: la variable de :root se resuelve ahí y no vería el --brand de este contenedor.
+  return { "--brand": color, "--primary": color, "--primary-foreground": readableOn(color) };
 }
 
 /** Primera letra del nombre, para el círculo cuando no hay logo. */

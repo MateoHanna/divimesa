@@ -16,5 +16,8 @@ export default async function DemoPage({ searchParams }: PageProps<"/demo">) {
   const wanted = Number(Array.isArray(sp.mesa) ? sp.mesa[0] : sp.mesa);
   const initial = tables.some((t) => t.number === wanted) ? wanted : (tables.find((t) => t.number === 4) ?? tables[0])?.number ?? 4;
   const bar = Array.isArray(sp.barra) ? sp.barra[0] : sp.barra;
-  return <DemoStage tables={tables} initialTable={initial} showBar={bar !== "0"} />;
+  // ?grabar=1 es el modo del video automático; ?vista=vertical deja solo el celular (1080x1920).
+  const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+  const recording = first(sp.grabar) === "1" ? { tall: first(sp.vista) === "vertical" } : null;
+  return <DemoStage tables={tables} initialTable={initial} showBar={bar !== "0"} recording={recording} />;
 }

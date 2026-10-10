@@ -2,18 +2,27 @@
 
 import { useState } from "react";
 import { MonitorIcon, SmartphoneIcon, Volume2Icon } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
+import { RecordingOverlay } from "@/components/demo/recording-overlay";
 import { cn } from "@/lib/utils";
+
+type Table = { number: number; token: string };
 
 /**
  * Escenario para grabar el video: a la izquierda la página del cliente en un marco de celular,
  * a la derecha el panel del salonero. Los dos son las páginas reales, en vivo (no una maqueta).
+ *
+ * Con `recording` es el escenario del video automático (scripts/demo-video): tamaños fijos,
+ * sin barra, con la capa de textos. `tall` deja solo el celular, para el formato vertical.
  */
 export function DemoStage({
-  tables, initialTable, showBar,
-}: { tables: { number: number; token: string }[]; initialTable: number; showBar: boolean }) {
+  tables, initialTable, showBar, recording,
+}: { tables: Table[]; initialTable: number; showBar: boolean; recording?: { tall: boolean } | null }) {
   const [mesa, setMesa] = useState(initialTable);
   const token = tables.find((t) => t.number === mesa)?.token ?? tables[0]?.token;
+
+  if (recording) return <RecordingStage token={token} mesa={mesa} tall={recording.tall} />;
 
   return (
     <div className="flex min-h-dvh flex-col bg-slate-100">
@@ -52,6 +61,46 @@ export function DemoStage({
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+/** Escenario del video: 1920x1080 (celular y panel) o 1080x1920 (solo el celular). */
+function RecordingStage({ token, mesa, tall }: { token: string | undefined; mesa: number; tall: boolean }) {
+  const [scan, setScan] = useState(false);
+  const url = token && typeof window !== "undefined" ? `${window.location.origin}/m/${token}` : "";
+
+  const phone = (
+    <div className="relative h-[820px] w-[410px] shrink-0 rounded-[3.2rem] border-[10px] border-slate-900 bg-slate-900 shadow-2xl">
+      <div aria-hidden className="absolute top-2 left-1/2 z-10 h-5 w-24 -translate-x-1/2 rounded-full bg-slate-900" />
+      {token ? (
+        <iframe key={token} title={`Página del cliente, Mesa ${mesa}`} src={`/m/${token}`} className="size-full rounded-[2.5rem] bg-white" />
+      ) : null}
+      {scan ? (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-6 rounded-[2.5rem] bg-[#111]">
+          <div className="relative flex size-[250px] items-center justify-center rounded-3xl bg-white p-5">
+            {url ? <QRCodeSVG value={url} size={210} /> : null}
+            <span aria-hidden className="animate-scan-line absolute top-[18px] right-3 left-3 h-1 rounded-full bg-[#D91E18] shadow-[0_0_14px_#D91E18]" />
+          </div>
+          <p className="text-xl font-semibold text-white/90">Mesa {mesa}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 overflow-hidden bg-slate-100">
+      {tall ? (
+        <div className="absolute top-[500px] left-1/2 origin-top -translate-x-1/2 scale-[1.5]">{phone}</div>
+      ) : (
+        <div className="flex gap-10 px-12 pt-10">
+          {phone}
+          <div className="h-[820px] min-w-0 flex-1 overflow-hidden rounded-2xl border bg-white shadow-xl">
+            <iframe title="Panel del salonero" src="/panel" className="size-full" />
+          </div>
+        </div>
+      )}
+      <RecordingOverlay tall={tall} onScan={setScan} />
     </div>
   );
 }

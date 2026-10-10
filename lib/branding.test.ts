@@ -35,7 +35,7 @@ describe("colores de la marca", () => {
 
   it("brandVars cae al escarlata de Divimesa por defecto si el color no sirve", () => {
     expect(brandVars("nada")["--brand"]).toBe("#D91E18");
-    expect(brandVars("#FACC15")).toEqual({ "--brand": "#facc15", "--primary-foreground": "#111111" });
+    expect(brandVars("#FACC15")).toEqual({ "--brand": "#facc15", "--primary": "#facc15", "--primary-foreground": "#111111" });
   });
 
   it("la inicial salta símbolos y espacios", () => {
