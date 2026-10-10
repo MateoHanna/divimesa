@@ -42,8 +42,20 @@ export async function runChoreography({ page, view, t0, log }) {
     return { x: f.x + inner.x * k, y: f.y + inner.y * k };
   }
 
-  /** Círculo suave y toque real sobre un elemento del celular. */
-  async function tap(locator, { pace = 1, scroll = true } = {}) {
+  /** Foto nítida (al doble de resolución) de la pantalla del celular, para taparla mientras carga otra página. */
+  let shotSession = null;
+  async function phoneShot() {
+    const box = await clientHandle.boundingBox();
+    if (!box) return null;
+    shotSession ??= await page.context().newCDPSession(page);
+    const { data } = await shotSession.send("Page.captureScreenshot", {
+      format: "jpeg", quality: 92, clip: { x: box.x, y: box.y, width: box.width, height: box.height, scale: 2 },
+    });
+    return `data:image/jpeg;base64,${data}`;
+  }
+
+  /** Círculo suave y toque real sobre un elemento del celular. Con `freeze`, la pantalla queda fija mientras carga lo que sigue. */
+  async function tap(locator, { pace = 1, scroll = true, freeze = false } = {}) {
     await locator.waitFor({ state: "visible", timeout: 20000 });
     if (scroll) {
       await locator.evaluate((el) => el.scrollIntoView({ behavior: "smooth", block: "center" }));
@@ -59,8 +71,10 @@ export async function runChoreography({ page, view, t0, log }) {
       pt = next;
       if (quieto) break;
     }
+    const shot = freeze ? await phoneShot() : null;
     await call("tap", pt.x, pt.y);
     await sleep(300 * pace);
+    if (shot) await call("veil", shot);
     await page.mouse.click(pt.x, pt.y);
     await sleep(220 * pace);
   }
@@ -73,6 +87,8 @@ export async function runChoreography({ page, view, t0, log }) {
     await client.waitForURL(/\/checkout-demo\//, { timeout: 20000 });
     const pay = payButton();
     await pay.waitFor({ state: "visible", timeout: 20000 });
+    await sleep(120);
+    await call("veil", null);
     const wait = at - now();
     if (wait > 0) await sleep(wait * 1000);
     await tap(pay, { pace, scroll: false });
@@ -126,15 +142,15 @@ export async function runChoreography({ page, view, t0, log }) {
   await begin("cada quien paga lo suyo", T.paga);
   await call("scene", "paga");
   await call("phoneZoom", zoomPhone);
-  await sleep(600);
+  await sleep(300);
   await tap(btn(/Pagar mis platos/));
-  await tap(lines.nth(0), { pace: 0.45 });
-  await tap(lines.nth(1), { pace: 0.45 });
-  await tap(client.getByRole("button", { name: "10 %", exact: true }), { pace: 0.45 });
-  await tap(client.getByRole("radio", { name: "Apple Pay" }), { pace: 0.45 });
-  await tap(payButton(), { pace: 0.45 });
+  await tap(lines.nth(0), { pace: 0.35 });
+  await tap(lines.nth(1), { pace: 0.35 });
+  await tap(client.getByRole("button", { name: "10 %", exact: true }), { pace: 0.35 });
+  await tap(client.getByRole("radio", { name: "Apple Pay" }), { pace: 0.35 });
+  await tap(payButton(), { pace: 0.35, freeze: true });
   // El clic final del checkout cae unos 1,5 s antes de la escena siguiente, así el aviso sale al empezar.
-  await payInCheckout({ pace: 0.8, at: T.panel - 1.5 });
+  await payInCheckout({ pace: 0.6, at: T.panel - 0.9 });
   await call("phoneZoom", 1);
 
   // 20 a 27 s: "Usted lo ve al instante." El panel real y la cámara acercándose a la Mesa 4 y al aviso.
@@ -154,23 +170,26 @@ export async function runChoreography({ page, view, t0, log }) {
   await call("phoneZoom", zoomPhone);
   await tap(btn(/Partes iguales/), { pace: 0.35 });
   await tap(btn(/Dividir en 2 partes/), { pace: 0.35 });
-  await tap(payButton(), { pace: 0.35 });
+  await tap(payButton(), { pace: 0.35, freeze: true });
   await payInCheckout({ pace: 0.35 });
   // La segunda persona escanea el mismo QR desde otro celular: sesión nueva.
   await client.evaluate(() => { try { window.localStorage.removeItem("qr-session"); } catch { /* sin localStorage */ } });
+  await call("scan", true);
   await client.goto(clientUrl);
   await client.locator('section[aria-label="Cuenta"]').waitFor({ timeout: 20000 });
+  await sleep(250);
+  await call("scan", false);
   await tap(btn(/Partes iguales/), { pace: 0.35 });
-  await tap(payButton(), { pace: 0.35 });
+  await tap(payButton(), { pace: 0.35, freeze: true });
   await payInCheckout({ pace: 0.35 });
   await call("phoneZoom", 1);
   // El panel: esperar a que la Mesa 4 esté verde con el aviso "pagó completo" y dejarlo quieto 3 s.
   await call("scene", "restoPanel");
   await panel.getByText(/pagó completo/).first().waitFor({ state: "visible", timeout: 15000 }).catch(() => log("  aviso: el panel no mostró \"pagó completo\" a tiempo"));
   await panel.getByRole("button", { name: /^Mesa 4, Pagada/ }).waitFor({ state: "visible", timeout: 8000 }).catch(() => log("  aviso: la Mesa 4 no se vio verde a tiempo"));
-  await sleep(500);
+  await sleep(150);
   await panelFocus(tall ? 1.2 : 1.45);
-  await sleep(1300);
+  await sleep(1150);
   await call("hold", true);
   await sleep(3000);
   await call("hold", false);

@@ -105,6 +105,7 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 - En modo grabación (`/m/<token>?grabar=1`, solo lo usa el video): la línea "Está en" muestra divimesa.com y una franja fija bajo el notch evita que tape el encabezado o el aviso "Faltan X de N partes".
 - "Partes iguales": ya no se muestra "Monto a pagar ₡0" hasta que haya división (`client-app.tsx`).
 - Todos los textos de la app pasaron de vos a usted (panel, errores de la API, diálogos, QR imprimible).
+- Ajustes del video v2: el generador arranca el servidor con `DEMO_CHECKOUT_DELAY_MS=400` (la espera de "Procesando el pago" baja de 1,5 s a 0,4 s; la ruta solo lo lee fuera de producción y hasta 1500 ms). Horario nominal 0/3/10/19/26/38/41/44 s: la escena de pago dura unos 9 s y la de partes iguales unos 8 s más el panel quieto 3 s, así el video sale de unos 45 s en mi base local. El celular nunca se ve en blanco al cargar: antes de pasar al checkout se tapa con una foto nítida de su pantalla (`veil`), y la segunda persona que escanea se cubre con la pantalla del QR mientras recarga. En vertical el panel se dibuja a 700 px de ancho (solo grilla y aviso) con más zoom.
 - Bug corregido de paso: `brandVars` (`lib/branding.ts`) no cambiaba `bg-primary` porque `--primary` se resolvía en `:root`; ahora también fija `--primary` en línea. El color del restaurante no se aplicaba en la página del cliente desde la fase 5.
 - Sobrantes: `.git/repo-src.tgz`, `.git/harness-src.tgz` y `.git/landing-src.tgz` son archivos temporales míos, se pueden borrar.
 

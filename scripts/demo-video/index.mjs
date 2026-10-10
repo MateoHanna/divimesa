@@ -144,7 +144,7 @@ async function main() {
     let serverOut = "";
     // APP_URL apunta a esta misma copia local: el checkout simulado se llama a sí mismo (webhook) por esa
   // dirección, así que nunca toca el dominio de producción aunque .env.local diga otra cosa.
-    server = spawn(process.execPath, [nextBin, "start", "-p", String(port)], { cwd: ROOT, env: { ...process.env, APP_URL: base }, stdio: ["ignore", "pipe", "pipe"] });
+    server = spawn(process.execPath, [nextBin, "start", "-p", String(port)], { cwd: ROOT, env: { ...process.env, APP_URL: base, DEMO_CHECKOUT_DELAY_MS: "400" }, stdio: ["ignore", "pipe", "pipe"] });
     server.stdout.on("data", (d) => { serverOut += d; });
     server.stderr.on("data", (d) => { serverOut += d; });
     let up = false;

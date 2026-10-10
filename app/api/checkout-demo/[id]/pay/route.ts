@@ -11,6 +11,13 @@ export const dynamic = "force-dynamic";
 // 1,5 s de espera simulada + el webhook. La función espera a que el webhook termine antes de responder.
 export const maxDuration = 30;
 
+/** Solo el generador de video (scripts/demo-video) lo define, para acortar la espera simulada. Nunca en producción. */
+function demoDelayMs(): number | undefined {
+  if (process.env.VERCEL_ENV === "production") return undefined;
+  const n = Number(process.env.DEMO_CHECKOUT_DELAY_MS);
+  return Number.isFinite(n) && n >= 0 && n <= 1500 ? n : undefined;
+}
+
 const schema = z.object({ outcome: z.enum(["paid", "failed"]).default("paid") });
 
 /** "Pagar" del checkout de la demo. Hace el papel de la pasarela: manda el webhook firmado y espera su respuesta. */
@@ -30,7 +37,7 @@ export const POST = clientRoute(async (req, params) => {
   if (!data?.provider_ref) throw new HttpError(409, "no_provider_ref", "Este pago no tiene checkout.");
 
   try {
-    await runMockCheckout({ providerRef: data.provider_ref, outcome, secret: getServerEnv().MOCK_WEBHOOK_SECRET, appUrl: getAppUrl() });
+    await runMockCheckout({ providerRef: data.provider_ref, outcome, secret: getServerEnv().MOCK_WEBHOOK_SECRET, appUrl: getAppUrl(), delayMs: demoDelayMs() });
   } catch (e) {
     console.error("[checkout-demo] el webhook falló:", e);
     throw new HttpError(502, "webhook_failed", "No se pudo confirmar el pago. Intente de nuevo.");

@@ -41,7 +41,7 @@ describe("nombres de archivo", () => {
 
 describe("horario", () => {
   it("las escenas pedidas", () => {
-    expect(T).toEqual({ intro: 0, cuenta: 3, paga: 10, panel: 20, resto: 27, cierre: 37, contacto: 40, fin: 43 });
+    expect(T).toEqual({ intro: 0, cuenta: 3, paga: 10, panel: 19, resto: 26, cierre: 38, contacto: 41, fin: 44 });
   });
 });
 

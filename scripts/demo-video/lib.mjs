@@ -4,11 +4,11 @@
 export const FPS = 30;
 
 /**
- * Segundo en que empieza cada escena (el video dura 43 s si todo va a tiempo). Los textos de cada
+ * Segundo en que empieza cada escena (el video dura unos 44 s si todo va a tiempo; la escena de partes iguales incluye el panel, que se queda quieto 3 s). Los textos de cada
  * escena viven en components/demo/recording-stage.tsx; `cierre` es la frase final y `contacto`
  * el logo con divimesa.com y el WhatsApp.
  */
-export const T = { intro: 0, cuenta: 3, paga: 10, panel: 20, resto: 27, cierre: 37, contacto: 40, fin: 43 };
+export const T = { intro: 0, cuenta: 3, paga: 10, panel: 19, resto: 26, cierre: 38, contacto: 41, fin: 44 };
 
 export const DEFAULTS = { nombre: "Su Restaurante", color: "#D91E18" };
 

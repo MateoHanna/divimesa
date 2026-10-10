@@ -24,6 +24,8 @@ export interface DemoVideoApi {
   tilt: (on: boolean) => void;
   /** Zoom suave hacia el celular (1 = normal). */
   phoneZoom: (z: number) => void;
+  /** Imagen fija sobre la pantalla del celular mientras carga otra página (null la quita). */
+  veil: (dataUrl: string | null) => void;
   /** Congela el movimiento lento de cámara (para dejar la imagen quieta). */
   hold: (on: boolean) => void;
   /** Cámara del panel: lleva el punto (x, y) del panel a la vista con ese zoom. null = panel completo. */
@@ -58,7 +60,7 @@ const WIDE = {
 const TALL = {
   w: 1080, h: 1920,
   phone: { cx: 540, cy: 1310, scale: 1.34 },
-  card: { left: 60, top: 700, w: 960, h: 800, natW: 900, natH: 750 },
+  card: { left: 60, top: 700, w: 960, h: 800, natW: 700, natH: 583 },
   title: 96, introTitle: 100, sub: 44,
 };
 
@@ -75,6 +77,7 @@ export function RecordingStage({ token, mesa, tall }: { token: string | undefine
   const [tilted, setTilted] = useState(true);
   const [phoneZoom, setPhoneZoom] = useState(1);
   const [cam, setCam] = useState<{ x: number; y: number; zoom: number } | null>(null);
+  const [veil, setVeil] = useState<string | null>(null);
   const [held, setHeld] = useState(false);
   const [taps, setTaps] = useState<Tap[]>([]);
   const current = useRef<Scene>("intro");
@@ -114,6 +117,7 @@ export function RecordingStage({ token, mesa, tall }: { token: string | undefine
       scan: setScan,
       tilt: setTilted,
       phoneZoom: setPhoneZoom,
+      veil: setVeil,
       hold: (on) => {
         setHeld(on);
         for (const el of [phoneGroup.current, panelGroup.current]) el?.getAnimations().forEach((a) => (on ? a.pause() : a.play()));
@@ -148,6 +152,10 @@ export function RecordingStage({ token, mesa, tall }: { token: string | undefine
             <div aria-hidden className="absolute top-2 left-1/2 z-10 h-5 w-24 -translate-x-1/2 rounded-full bg-slate-900" />
             {token ? (
               <iframe key={token} title={`Página del cliente, Mesa ${mesa}`} src={`/m/${token}?grabar=1`} className="size-full rounded-[2.5rem] bg-white" />
+            ) : null}
+            {veil ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img alt="" src={veil} className="pointer-events-none absolute inset-0 z-[15] size-full rounded-[2.5rem] object-fill" />
             ) : null}
             {scan ? (
               <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-6 rounded-[2.5rem] bg-[#111]">
