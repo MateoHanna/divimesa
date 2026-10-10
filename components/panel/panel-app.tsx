@@ -50,7 +50,7 @@ export function PanelApp() {
         {state ? <BrandMark name={state.restaurant.name} logoUrl={state.restaurant.logoUrl} className="size-10 rounded-lg text-lg" /> : null}
         <div className="flex min-w-0 flex-1 items-center gap-x-3 gap-y-0.5 max-sm:flex-col max-sm:items-start">
           <h1 className="min-w-0 max-w-full truncate text-2xl leading-tight font-extrabold tracking-tight">{state?.restaurant.name ?? "Panel"}</h1>
-          <DivimesaLogo className="h-4 shrink-0 opacity-90" />
+          <DivimesaLogo className="h-5 shrink-0" />
         </div>
         <Button variant="ghost" size="icon" aria-label="Menú" onClick={() => setMenuOpen(true)}><MoreVerticalIcon /></Button>
       </header>

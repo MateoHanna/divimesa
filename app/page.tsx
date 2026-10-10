@@ -33,7 +33,7 @@ export default function Home() {
   return (
     <div className="flex min-h-dvh flex-col bg-white text-[#1C1C1E]">
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-5 py-5 sm:px-8">
-        <DivimesaLogo className="h-8" />
+        <DivimesaLogo variant="wordmark" className="h-9" />
         <Link href="/panel" className="inline-flex min-h-10 items-center rounded-xl border border-[#1C1C1E]/20 px-4 text-sm font-semibold hover:bg-[#1C1C1E]/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D91E18]">
           Ingresar
         </Link>
