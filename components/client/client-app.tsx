@@ -1,14 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon, LockIcon, ShieldCheckIcon, WifiOffIcon } from "lucide-react";
 
 import type { ClientState, InvoiceInput, PayMethod, PayMode, TipChoice, Unavailable } from "@/lib/client/types";
 import { earliestReservation, quote, selectableLines } from "@/lib/client/quote";
 import { formatCRC } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
+import { BrandMark } from "@/components/brand/brand-mark";
 import { useBroadcast } from "@/components/realtime/use-broadcast";
+import { AnimatedMoney } from "@/components/ui/animated-number";
+import { useJustPaid } from "@/components/ui/use-just-paid";
+import { brandVars } from "@/lib/branding";
 
 import { call } from "./call";
 import { EqualSplit } from "./equal-split";
@@ -40,7 +44,7 @@ function cleanInvoice(i: InvoiceInput): InvoiceInput | undefined {
 
 const DECLINED = "El pago fue rechazado y no se cobró nada. Puede intentarlo de nuevo o elegir otro método.";
 
-export function ClientApp({ token, initial, channel, flash }: { token: string; initial: ClientState; channel: string | null; flash?: "declined" }) {
+export function ClientApp({ token, initial, channel, flash, host }: { token: string; initial: ClientState; channel: string | null; flash?: "declined"; host: string | null }) {
   const [mode, setMode] = useState<PayMode | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [tipUi, setTipUi] = useState<TipUi>("none");
@@ -108,7 +112,8 @@ export function ClientApp({ token, initial, channel, flash }: { token: string; i
     }
   }, [changeMode, setSel]);
 
-  const { state, synced, apply, skew, refresh } = useClientState(token, initial, onApply);
+  const { state, synced, offline, apply, skew, refresh } = useClientState(token, initial, onApply);
+  const justPaid = useJustPaid(state.bill?.lines);
   useBroadcast(channel, refresh);
 
   useEffect(() => {
@@ -217,12 +222,28 @@ export function ClientApp({ token, initial, channel, flash }: { token: string; i
   const disabledReason = !synced ? "Actualizando la cuenta…" : q.blocked ?? (invoiceError ? "Revise los datos de factura." : null);
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-4 px-4 pb-10" style={{ "--brand": state.restaurant.primaryColor } as React.CSSProperties}>
-      <header className="-mx-4 border-b-4 px-4 pb-3 pt-5" style={{ borderColor: "var(--brand)" }}>
-        <p className="text-sm font-medium text-muted-foreground">{state.restaurant.name}</p>
-        <h1 className="text-3xl font-extrabold">Mesa {state.tableNumber}</h1>
-        <p className="text-sm text-muted-foreground">No necesita descargar nada ni registrarse</p>
+    <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-4 px-4 pb-10" style={brandVars(state.restaurant.primaryColor) as React.CSSProperties}>
+      <header className="-mx-4 bg-primary px-4 pb-4 pt-5 text-primary-foreground">
+        <div className="flex items-center gap-3">
+          <BrandMark name={state.restaurant.name} logoUrl={state.restaurant.logoUrl} className="size-14 rounded-2xl" />
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-xl leading-tight font-extrabold">{state.restaurant.name}</h1>
+            <p className="text-sm font-medium opacity-90">Mesa {state.tableNumber}</p>
+          </div>
+        </div>
       </header>
+      <div className="-mx-4 -mt-4 flex flex-col gap-0.5 border-b bg-card px-4 py-2.5 text-xs text-muted-foreground">
+        <p className="flex items-center gap-1.5 font-medium text-foreground">
+          <LockIcon className="size-3.5 shrink-0" aria-hidden /> No necesita descargar nada ni registrarse
+        </p>
+        {host ? <p className="pl-5">Está en <span className="font-semibold text-foreground">{host}</span></p> : null}
+      </div>
+
+      {offline ? (
+        <p role="status" className="flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+          <WifiOffIcon className="size-4 shrink-0" aria-hidden /> Sin conexión. Reintentando… la cuenta puede estar desactualizada.
+        </p>
+      ) : null}
 
       {state.view === "no_bill" ? (
         <p role="status" className="rounded-2xl border p-5 text-lg">Esta mesa todavía no tiene una cuenta abierta. Pídale la cuenta al salonero.</p>
@@ -259,7 +280,7 @@ export function ClientApp({ token, initial, channel, flash }: { token: string; i
                 const checked = selected.includes(l.id);
                 const canSplit = mode === "items" && !paid && !other && !bill.split && !l.splitGroupId && l.amount >= 2;
                 return (
-                  <li key={l.id} className={cn("flex items-center gap-3 px-3", checked && "bg-primary/5")}>
+                  <li key={l.id} className={cn("flex items-center gap-3 px-3 transition-colors duration-500", checked && "bg-primary/5", justPaid.has(l.id) && "animate-paid-flash")}>
                     <button type="button" disabled={!pickable} onClick={() => toggle(l.id)} aria-pressed={pickable ? checked : undefined}
                       className="flex min-h-14 flex-1 items-center gap-3 py-2 text-left disabled:cursor-default">
                       {mode === "items" ? (
@@ -332,6 +353,18 @@ export function ClientApp({ token, initial, channel, flash }: { token: string; i
         </>
       ) : null}
 
+      <details className="group mt-auto rounded-xl border bg-card text-sm">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-3 font-medium">
+          <ShieldCheckIcon className="size-4 shrink-0 text-emerald-700" aria-hidden /> ¿Es seguro pagar aquí?
+        </summary>
+        <ul className="flex flex-col gap-1.5 px-3 pb-3 text-muted-foreground">
+          <li>Solo ve la cuenta de su mesa. No instala nada ni crea una cuenta.</li>
+          <li>En esta página no se escriben datos de tarjeta: el pago se completa en la pantalla del proveedor de pagos.</li>
+          <li>Los datos de factura son opcionales y solo se usan para su comprobante.</li>
+          <li>Si algo no le parece bien, pídale ayuda al salonero antes de pagar.</li>
+        </ul>
+      </details>
+
       <SplitItemDialog target={splitTarget} onClose={() => setSplitTarget(null)} busy={busy} onConfirm={splitItem} />
     </div>
   );
@@ -340,7 +373,7 @@ export function ClientApp({ token, initial, channel, flash }: { token: string; i
 function Row({ label, value, strong }: { label: string; value: number; strong?: boolean }) {
   return (
     <div className={cn("flex justify-between", strong && "text-base font-bold")}>
-      <dt>{label}</dt><dd className="tabular-nums">{value < 0 ? `−${formatCRC(-value)}` : formatCRC(value)}</dd>
+      <dt>{label}</dt><dd>{value < 0 ? <>−<AnimatedMoney value={-value} /></> : <AnimatedMoney value={value} />}</dd>
     </div>
   );
 }

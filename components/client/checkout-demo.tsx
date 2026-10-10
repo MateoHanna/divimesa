@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckIcon } from "lucide-react";
 
+import { BrandMark } from "@/components/brand/brand-mark";
 import { Button } from "@/components/ui/button";
+import { brandVars } from "@/lib/branding";
 import { METHOD_LABELS, type Receipt } from "@/lib/client/receipt";
 import { formatCRC } from "@/lib/money";
 
@@ -51,11 +53,14 @@ export function CheckoutDemo({ receipt }: { receipt: Receipt }) {
     router.push(back);
   }
 
-  const style = { "--brand": receipt.primaryColor } as React.CSSProperties;
+  const style = brandVars(receipt.primaryColor) as React.CSSProperties;
   const head = (
-    <header className="-mx-4 border-b-4 px-4 pb-3 pt-5" style={{ borderColor: "var(--brand)" }}>
-      <p className="text-sm font-medium text-muted-foreground">{receipt.restaurant}</p>
-      <h1 className="text-2xl font-extrabold">Mesa {receipt.tableNumber}</h1>
+    <header className="-mx-4 flex items-center gap-3 bg-primary px-4 pb-4 pt-5 text-primary-foreground">
+      <BrandMark name={receipt.restaurant} logoUrl={receipt.logoUrl} className="size-12 rounded-xl" />
+      <div className="min-w-0">
+        <h1 className="truncate text-lg leading-tight font-extrabold">{receipt.restaurant}</h1>
+        <p className="text-sm opacity-90">Mesa {receipt.tableNumber}</p>
+      </div>
     </header>
   );
   const rows = (

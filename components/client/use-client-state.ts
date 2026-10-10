@@ -19,6 +19,7 @@ export function useClientState(
 ) {
   const [state, setState] = useState(initial);
   const [synced, setSynced] = useState(false);
+  const [offline, setOffline] = useState(false);
   const stateRef = useRef(initial);
   const version = useRef(0);
   const skew = useRef(0); // reloj del servidor menos el del celular, para el cronómetro de la reserva
@@ -43,6 +44,7 @@ export function useClientState(
     const res = await call<{ state?: ClientState }>(`/api/m/${token}`, "GET");
     if (mine !== version.current) return;
     if (res.json?.ok && res.json.state) apply(res.json.state);
+    setOffline(!res.json?.ok);
   }, [token, apply]);
 
   useEffect(() => {
@@ -59,5 +61,5 @@ export function useClientState(
     };
   }, [poll]);
 
-  return { state, synced, apply, skew, refresh: poll };
+  return { state, synced, offline, apply, skew, refresh: poll };
 }

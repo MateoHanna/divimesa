@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeftIcon, MinusIcon, MoreVerticalIcon, PencilIcon, QrCodeIcon } from "lucide-react";
 
+import { AnimatedMoney } from "@/components/ui/animated-number";
+import { useJustPaid } from "@/components/ui/use-just-paid";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatCRC } from "@/lib/money";
@@ -24,6 +26,7 @@ type Act = (url: string, method: "POST" | "PATCH" | "DELETE", body?: unknown, ok
 export function TableDetail({
   table, menu, busy, act, onBack,
 }: { table: PanelTable; menu: PanelState["menu"]; busy: boolean; act: Act; onBack: () => void }) {
+  const justPaid = useJustPaid(table.bill?.lines);
   const [adding, setAdding] = useState(false);
   const [paying, setPaying] = useState(false);
   const [price, setPrice] = useState<{ id: string; name: string; price: number } | null>(null);
@@ -66,7 +69,7 @@ export function TableDetail({
               const editable = bill.status === "open" && !bill.split && g.status === "pending";
               const freeId = bill.lines.find((l) => g.ids.includes(l.id) && !l.reserved)?.id;
               return (
-                <li key={g.key} className={cn("flex items-center gap-2 p-3", g.status === "paid" && "text-muted-foreground")}>
+                <li key={g.key} className={cn("flex items-center gap-2 p-3", g.status === "paid" && "text-muted-foreground", g.ids.some((id) => justPaid.has(id)) && "animate-paid-flash")}>
                   <div className="min-w-0 flex-1">
                     <p className="font-medium">{g.count > 1 ? `${g.count} × ` : ""}{g.name}</p>
                     <p className="text-sm">
@@ -93,12 +96,12 @@ export function TableDetail({
           </ul>
 
           <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm">
-            <dt>Subtotal</dt><dd className="text-right tabular-nums">{formatCRC(bill.totals.subtotal)}</dd>
-            <dt>Servicio</dt><dd className="text-right tabular-nums">{formatCRC(bill.totals.service)}</dd>
-            <dt>IVA</dt><dd className="text-right tabular-nums">{formatCRC(bill.totals.vat)}</dd>
-            <dt className="font-semibold">Total</dt><dd className="text-right font-semibold tabular-nums">{formatCRC(bill.totals.total)}</dd>
-            <dt>Pagado</dt><dd className="text-right tabular-nums">{formatCRC(bill.totals.paid)}</dd>
-            <dt className="text-base font-bold">Saldo</dt><dd className="text-right text-base font-bold tabular-nums">{formatCRC(bill.totals.balance)}</dd>
+            <dt>Subtotal</dt><dd className="text-right tabular-nums"><AnimatedMoney value={bill.totals.subtotal} /></dd>
+            <dt>Servicio</dt><dd className="text-right tabular-nums"><AnimatedMoney value={bill.totals.service} /></dd>
+            <dt>IVA</dt><dd className="text-right tabular-nums"><AnimatedMoney value={bill.totals.vat} /></dd>
+            <dt className="font-semibold">Total</dt><dd className="text-right font-semibold tabular-nums"><AnimatedMoney value={bill.totals.total} /></dd>
+            <dt>Pagado</dt><dd className="text-right tabular-nums"><AnimatedMoney value={bill.totals.paid} /></dd>
+            <dt className="text-base font-bold">Saldo</dt><dd className="text-right text-base font-bold tabular-nums"><AnimatedMoney value={bill.totals.balance} /></dd>
           </dl>
 
           {bill.status === "open" ? (

@@ -17,7 +17,7 @@ function stateWith(o: { paidOutside?: number; balance?: number; all?: number; it
   return {
     view: "open", tableNumber: 2, serverTime: "2026-10-09T12:00:00Z", outcome: null,
   billId: "b1",
-    restaurant: { name: "Demo", primaryColor: "#0f766e", serviceRate: 0.1, vatRate: 0.13, pricesIncludeTaxes: false },
+    restaurant: { name: "Demo", primaryColor: "#0f766e", logoUrl: null, serviceRate: 0.1, vatRate: 0.13, pricesIncludeTaxes: false },
     bill: {
       id: "b1", lines,
       totals: { itemsSum: 17200, subtotal: 17200, service: 1720, vat: 2236, total: 21156, paid: 21156 - balance, balance },

@@ -48,7 +48,7 @@ export interface ClientBill {
 export interface ClientState {
   view: "no_bill" | "open" | "finished";
   tableNumber: number;
-  restaurant: { name: string; primaryColor: string; serviceRate: number; vatRate: number; pricesIncludeTaxes: boolean };
+  restaurant: { name: string; primaryColor: string; logoUrl: string | null; serviceRate: number; vatRate: number; pricesIncludeTaxes: boolean };
   serverTime: string;
   /** Id de la cuenta actual (o de la última, si ya terminó). Cambia cuando abren una cuenta nueva. */
   billId: string | null;

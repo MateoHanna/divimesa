@@ -15,6 +15,7 @@ import type {
 export interface RestaurantRow {
   id?: string;
   show_decline_demo?: boolean;
+  logo_url?: string | null;
   name: string;
   primary_color: string;
   service_rate: number | string;
@@ -171,7 +172,7 @@ export function buildPanelState(input: {
 
   return {
     restaurant: {
-      id: restaurant.id ?? "", name: restaurant.name, primaryColor: restaurant.primary_color,
+      id: restaurant.id ?? "", name: restaurant.name, primaryColor: restaurant.primary_color, logoUrl: restaurant.logo_url ?? null,
       showDeclineDemo: !!restaurant.show_decline_demo,
     },
     tables,

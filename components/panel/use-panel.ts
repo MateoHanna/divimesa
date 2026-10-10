@@ -2,54 +2,94 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { newlyPaidTables, newPaymentCount } from "@/lib/panel/state";
+import { useBroadcast } from "@/components/realtime/use-broadcast";
+import { formatCRC } from "@/lib/money";
+import { panelEvents } from "@/lib/panel/events";
 import type { PanelState } from "@/lib/panel/types";
 
-import { useBroadcast } from "@/components/realtime/use-broadcast";
-
-import { beep } from "./sound";
+import { beep, chime } from "./sound";
+import { METHOD_LABEL } from "./status";
 
 const POLL_MS = 3000;
+const NOTICE_MS = 5000;
+const ERROR_MS = 6000;
+const BLINK_MS = 4000;
+const BLINK_PAID_MS = 5500;
 
 export interface Notice {
   id: number;
-  kind: "info" | "error" | "paid";
+  kind: "info" | "error" | "payment" | "paid";
   text: string;
+  /** Se queda hasta que el salonero lo toque (mesa pagada completa). */
+  sticky?: boolean;
+  tableId?: string;
+  billId?: string;
 }
 
 /**
- * Estado del panel con consulta cada 3 s solo mientras la pestaña está visible
- * (respaldo de Realtime). Avisa con sonido de pagos nuevos.
+ * Estado del panel: Realtime avisa al instante y una consulta cada 3 s (solo con la pestaña visible)
+ * queda de respaldo. Cada pago nuevo hace sonar un pitido y un aviso de 5 s con la mesa, el monto y el
+ * método; cuando una mesa paga completo suena otra campanita y el aviso espera al toque del salonero.
  */
 export function usePanel(onUnauthorized: () => void) {
   const [state, setState] = useState<PanelState | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [flashing, setFlashing] = useState<ReadonlyMap<string, "payment" | "paid">>(new Map());
   const [busy, setBusy] = useState(false);
+  const [offline, setOffline] = useState(false);
   const prev = useRef<PanelState | null>(null);
   const seq = useRef(0);
   const inflight = useRef(0); // acciones en curso: no pisar su respuesta con una consulta vieja
 
-  const notify = useCallback((kind: Notice["kind"], text: string) => {
+  const dismiss = useCallback((id: number) => setNotices((n) => n.filter((x) => x.id !== id)), []);
+
+  const notify = useCallback((kind: Notice["kind"], text: string, extra: Partial<Notice> = {}) => {
     const id = ++seq.current;
-    setNotices((n) => [...n.slice(-2), { id, kind, text }]);
-    setTimeout(() => setNotices((n) => n.filter((x) => x.id !== id)), kind === "error" ? 6000 : 5000);
+    setNotices((n) => [...n.filter((x) => x.sticky), ...n.filter((x) => !x.sticky).slice(-2), { id, kind, text, ...extra }]);
+    if (!extra.sticky) setTimeout(() => setNotices((n) => n.filter((x) => x.id !== id)), kind === "error" ? ERROR_MS : NOTICE_MS);
+  }, []);
+
+  const blink = useCallback((tableId: string, kind: "payment" | "paid") => {
+    setFlashing((m) => new Map(m).set(tableId, kind));
+    setTimeout(() => setFlashing((m) => {
+      if (m.get(tableId) !== kind) return m;
+      const n = new Map(m);
+      n.delete(tableId);
+      return n;
+    }), kind === "paid" ? BLINK_PAID_MS : BLINK_MS);
   }, []);
 
   const apply = useCallback(
     (next: PanelState) => {
-      const paid = newlyPaidTables(prev.current, next);
-      const count = newPaymentCount(prev.current, next);
-      if (paid.length > 0) {
-        beep();
-        notify("paid", paid.length === 1 ? `Mesa ${paid[0]} pagó completo` : `Mesas ${paid.join(", ")} pagaron completo`);
-      } else if (count > 0) {
-        beep();
-        notify("info", count === 1 ? "Entró un pago nuevo" : `Entraron ${count} pagos nuevos`);
+      const ev = panelEvents(prev.current, next);
+      let rang = false;
+      for (const p of ev.payments) {
+        const detail = `${formatCRC(p.amount + p.tip)} · ${METHOD_LABEL[p.method] ?? p.method}`;
+        if (p.completed) {
+          if (!rang) chime();
+          rang = true;
+          notify("paid", `Mesa ${p.tableNumber} pagó completo · ${detail}`, { sticky: true, tableId: p.tableId, billId: p.billId });
+          blink(p.tableId, "paid");
+        } else {
+          if (!rang) beep();
+          rang = true;
+          notify("payment", `Mesa ${p.tableNumber} · ${detail}`, { tableId: p.tableId });
+          blink(p.tableId, "payment");
+        }
       }
+      for (const t of ev.paidWithoutPayment) {
+        if (!rang) chime();
+        rang = true;
+        notify("paid", `Mesa ${t.tableNumber} quedó pagada`, { sticky: true, tableId: t.tableId, billId: t.billId });
+        blink(t.tableId, "paid");
+      }
+      // Un aviso fijo se quita solo si la mesa ya no está pagada (alguien la liberó desde otro lado).
+      const paidIds = new Set(next.tables.filter((t) => t.status === "paid").map((t) => t.id));
+      setNotices((n) => n.filter((x) => !x.sticky || !x.tableId || paidIds.has(x.tableId)));
       prev.current = next;
       setState(next);
     },
-    [notify],
+    [notify, blink],
   );
 
   const refresh = useCallback(async () => {
@@ -59,8 +99,9 @@ export function usePanel(onUnauthorized: () => void) {
       if (res.status === 401) return onUnauthorized();
       const json = (await res.json()) as { ok: boolean; state?: PanelState };
       if (json.ok && json.state && inflight.current === 0) apply(json.state);
+      setOffline(!json.ok);
     } catch {
-      /* sin red: se reintenta en el próximo ciclo */
+      setOffline(true); // sin red: se reintenta en el próximo ciclo
     }
   }, [apply, onUnauthorized]);
 
@@ -86,8 +127,8 @@ export function usePanel(onUnauthorized: () => void) {
       try {
         const res = await fetch(url, {
           method,
-          headers: body === undefined ? undefined : { "Content-Type": "application/json" },
-          body: body === undefined ? undefined : JSON.stringify(body),
+          headers: body === undefined || body instanceof FormData ? undefined : { "Content-Type": "application/json" },
+          body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
         });
         if (res.status === 401) {
           onUnauthorized();
@@ -95,6 +136,7 @@ export function usePanel(onUnauthorized: () => void) {
         }
         const json = (await res.json()) as { ok: boolean; error?: string; state?: PanelState };
         if (json.state) apply(json.state);
+        setOffline(false);
         if (!json.ok) {
           notify("error", json.error ?? "No se pudo completar la acción.");
           return false;
@@ -115,5 +157,5 @@ export function usePanel(onUnauthorized: () => void) {
   // Realtime avisa al instante; la consulta cada 3 s queda como respaldo.
   useBroadcast(state?.restaurant.id ? `restaurant:${state.restaurant.id}` : null, refresh);
 
-  return { state, notices, busy, act, refresh };
+  return { state, notices, flashing, busy, offline, act, refresh, dismiss, notify };
 }

@@ -56,3 +56,34 @@
     @apply bg-background text-foreground font-sans;
   }
 }
+
+/* Animaciones de la demo. Todas se apagan si la persona pidió menos movimiento. */
+@keyframes paid-flash {
+  0% { background-color: rgb(16 185 129 / 0.35); transform: scale(1.015); }
+  100% { background-color: rgb(16 185 129 / 0); transform: none; }
+}
+@keyframes card-blink {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(37 99 235 / 0); transform: none; }
+  50% { box-shadow: 0 0 0 7px rgb(37 99 235 / 0.4); transform: scale(1.03); }
+}
+@keyframes card-blink-paid {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(5 150 105 / 0); transform: none; }
+  50% { box-shadow: 0 0 0 8px rgb(5 150 105 / 0.45); transform: scale(1.04); }
+}
+@keyframes notice-in {
+  from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes count-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.06); color: rgb(5 150 105); }
+  100% { transform: scale(1); }
+}
+.animate-paid-flash { animation: paid-flash 1.5s ease-out; }
+.animate-card-blink { animation: card-blink 0.9s ease-in-out 4; }
+.animate-card-blink-paid { animation: card-blink-paid 1s ease-in-out 5; }
+.animate-notice-in { animation: notice-in 0.25s ease-out; }
+.animate-count-pop { animation: count-pop 0.7s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-paid-flash, .animate-card-blink, .animate-card-blink-paid, .animate-notice-in, .animate-count-pop { animation: none; }
+}

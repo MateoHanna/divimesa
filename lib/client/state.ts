@@ -10,7 +10,7 @@ interface RawState {
   table_number: number;
   server_time: string;
   restaurant: {
-    name: string; primary_color: string;
+    name: string; primary_color: string; logo_url?: string | null;
     service_rate?: number | string; vat_rate?: number | string; prices_include_taxes?: boolean;
   };
   bill: null | {
@@ -57,6 +57,7 @@ export function toClientState(raw: RawState): ClientState {
     restaurant: {
       name: raw.restaurant.name,
       primaryColor: raw.restaurant.primary_color,
+      logoUrl: raw.restaurant.logo_url ?? null,
       serviceRate: Number(raw.restaurant.service_rate ?? 0),
       vatRate: Number(raw.restaurant.vat_rate ?? 0),
       pricesIncludeTaxes: !!raw.restaurant.prices_include_taxes,

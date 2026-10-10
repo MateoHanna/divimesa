@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { ClientApp } from "@/components/client/client-app";
 import { loadClientState, TOKEN_RE } from "@/lib/client/queries";
+import { getAppUrl } from "@/lib/app-url";
 import { DbError } from "@/lib/panel/queries";
 import { getAdminClient } from "@/lib/supabase/server";
 
@@ -27,8 +28,14 @@ export default async function Page({ params, searchParams }: PageProps<"/m/[toke
     if (e instanceof DbError && e.message.includes("table_not_found")) notFound();
     throw e;
   }
+  let host: string | null = null;
+  try {
+    host = new URL(getAppUrl()).host;
+  } catch {
+    host = null;
+  }
   return (
     <ClientApp token={token} initial={initial} channel={tableId ? `table:${tableId}` : null}
-      flash={sp.rechazo === "1" ? "declined" : undefined} />
+      flash={sp.rechazo === "1" ? "declined" : undefined} host={host} />
   );
 }

@@ -11,7 +11,8 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 | 2. Panel del salonero (`/panel`) | Código completo y probado en lógica y SQL; falta la prueba de punta a punta en el sitio desplegado |
 | 3. Página del cliente (`/m/[token]`) | Código completo, SQL probado contra Supabase y 85 tests; falta probarla en un celular real |
 | 4. Checkout simulado, webhook, comprobante, Realtime | Código completo; SQL y Realtime probados contra Supabase; falta la prueba a mano en celulares tras el deploy |
-| 5 y 6 | Sin empezar |
+| 5. Pulido de la demo (marca, `/demo`, avisos, animaciones, estados de carga y error) | Código completo, tsc, eslint, 115 tests y `next build` limpios; migración 0008 aplicada; falta la prueba visual a mano |
+| 6 | Sin empezar |
 
 ## Qué quedó
 
@@ -74,6 +75,17 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 - Prueba de aceptación del SPEC: `supabase/tests/acceptance.sql` cubre los pasos 1 a 10 contra las funciones SQL (todo coincide con lo esperado, valores al final del archivo), más rechazo y cuenta cerrada. 99 tests de Vitest.
 - **Sin probar en celulares reales** (la VM no puede iniciar sesión en el panel): el pitido, el diseño en pantalla chica y el flujo completo en el sitio desplegado. Lista corta en la respuesta de cierre de fase.
 
+**Fase 5**
+- Marca por restaurante: el panel tiene "Personalizar restaurante" (menú) para cambiar nombre, color y logo. El texto sobre el color se elige solo por contraste (`lib/branding.ts`). El logo se sube a un bucket público `logos` (migración `20261009000008_branding.sql`, ya aplicada), se valida por bytes (PNG, JPG, WebP, máx. según `LOGO_MAX_BYTES`) y se reduce en el navegador antes de subir. Sin logo se muestra la inicial.
+- `/demo`: el cliente (`/m/<token>`) en un marco de celular a la izquierda y el panel a la derecha, los dos en vivo. `?barra=0` oculta la barra superior para grabar. El sonido necesita un toque dentro del panel (política del navegador).
+- Grilla: cada estado (libre, abierta, pago parcial, pagada) con color, ícono y barra de avance distintos, y leyenda con conteos.
+- Animaciones: el saldo cuenta hacia abajo (`AnimatedMoney`) y la línea que pasa a pagado destella. Respetan `prefers-reduced-motion`.
+- Avisos del panel (`lib/panel/events.ts`, `use-panel.ts`): pago normal = aviso arriba con mesa, monto y método, pitido corto, se quita a los 5 s y la tarjeta parpadea. Mesa pagada completa = tarjeta verde, aviso fijo con otro sonido y botón "Liberar mesa" hasta que el salonero lo toque.
+- Carga y error: `loading.tsx`, `error.tsx`, `global-error.tsx`, `not-found.tsx`, esqueletos y banners de "sin conexión" en panel y cliente. Landing nueva en `/`.
+- Página del cliente más confiable: nombre y logo del local, franja de confianza, pie con el dominio y qué se hace con el pago.
+- **Sin probar**: nada de la fase 5 se vio en un navegador real (la VM no puede entrar al panel de producción). Pendiente a mano: subir logo y cambiar color, `/demo`, pitidos, parpadeo, aviso fijo, pantallas de error, diseño en celular chico.
+- Sobrante: `.git/harness-src.tgz` es un archivo temporal mío dentro de `.git`; se puede borrar. `factory_reset` no reinicia `show_decline_demo`. No se agregó la marca "Divimesa" a la interfaz.
+
 ## Decisiones tomadas
 
 - El rechazo discreto es un interruptor del panel por restaurante (no un parámetro en la URL), así se activa antes de una demo sin tocar la dirección del celular.
@@ -103,5 +115,5 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 
 ## Siguiente paso
 
-1. Mateo hace `git push` del commit de la fase 4 (se despliega solo) y corre la lista de pruebas a mano (ver la respuesta de cierre de fase). Anotar acá qué falla.
-2. Fase 5 (pulido de la demo) y, si se quiere, fase 6 (Stripe en modo prueba), según SPEC.md.
+1. Mateo hace `git push` del commit de la fase 5 (se despliega solo) y corre la lista de pruebas a mano (ver la respuesta de cierre de fase). Anotar acá qué falla.
+2. Si se quiere, fase 6 (Stripe en modo prueba), según SPEC.md.
