@@ -25,7 +25,7 @@ export async function loadPanelState(now: Date = new Date()): Promise<PanelState
       .order("created_at").limit(1).single<RestaurantRow & { id: string }>(),
   );
   const [tables, menu] = await Promise.all([
-    db.from("tables").select("id,number").eq("restaurant_id", restaurant.id).returns<TableRow[]>(),
+    db.from("tables").select("id,number").eq("restaurant_id", restaurant.id).eq("is_hidden", false).returns<TableRow[]>(),
     db.from("menu_items").select("id,name,category,price,sort_order").eq("restaurant_id", restaurant.id)
       .eq("active", true).returns<MenuRow[]>(),
   ]);
@@ -61,7 +61,7 @@ export async function loadPanelState(now: Date = new Date()): Promise<PanelState
 /** Token de QR de una mesa por número. Solo para la página protegida del QR. */
 export async function loadTableToken(number: number): Promise<{ token: string; number: number; restaurant: string } | null> {
   const db = getAdminClient();
-  const { data } = await db.from("tables").select("number,qr_token,restaurants(name)").eq("number", number)
+  const { data } = await db.from("tables").select("number,qr_token,restaurants(name)").eq("number", number).eq("is_hidden", false)
     .limit(1).maybeSingle<{ number: number; qr_token: string; restaurants: { name: string } | { name: string }[] | null }>();
   if (!data) return null;
   const r = Array.isArray(data.restaurants) ? data.restaurants[0] : data.restaurants;
@@ -75,7 +75,7 @@ export async function loadAllTableTokens(): Promise<{ restaurant: string; tables
     await db.from("restaurants").select("id,name").order("created_at").limit(1).single<{ id: string; name: string }>(),
   );
   const tables = check(
-    await db.from("tables").select("number,qr_token").eq("restaurant_id", r.id).order("number")
+    await db.from("tables").select("number,qr_token").eq("restaurant_id", r.id).eq("is_hidden", false).order("number")
       .returns<{ number: number; qr_token: string }[]>(),
   );
   return { restaurant: r.name, tables: tables.map((t) => ({ number: t.number, token: t.qr_token })) };

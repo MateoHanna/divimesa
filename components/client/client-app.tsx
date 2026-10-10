@@ -15,6 +15,7 @@ import { useBroadcast } from "@/components/realtime/use-broadcast";
 import { AnimatedMoney } from "@/components/ui/animated-number";
 import { useJustPaid } from "@/components/ui/use-just-paid";
 import { brandVars } from "@/lib/branding";
+import { displayTableNumber } from "@/lib/demo/display";
 
 import { call } from "./call";
 import { EqualSplit } from "./equal-split";
@@ -46,7 +47,7 @@ function cleanInvoice(i: InvoiceInput): InvoiceInput | undefined {
 
 const DECLINED = "El pago fue rechazado y no se cobró nada. Puede intentarlo de nuevo o elegir otro método.";
 
-export function ClientApp({ token, initial, channel, flash, host, recording = false }: { token: string; initial: ClientState; channel: string | null; flash?: "declined"; host: string | null; recording?: boolean }) {
+export function ClientApp({ token, initial, channel, flash, host, recording = false, demo = false }: { token: string; initial: ClientState; channel: string | null; flash?: "declined"; host: string | null; recording?: boolean; demo?: boolean }) {
   const [mode, setMode] = useState<PayMode | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [tipUi, setTipUi] = useState<TipUi>("none");
@@ -227,12 +228,15 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
     <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-4 px-4 pb-10" style={{ ...brandVars(state.restaurant.primaryColor), ...(recording ? { paddingTop: 40 } : {}) } as React.CSSProperties}>
       {/* Video de demo: franja fija bajo el notch del marco, para que nunca tape el contenido. */}
       {recording ? <div aria-hidden className="fixed inset-x-0 top-0 z-30 h-10 bg-primary" /> : null}
+      {demo ? (
+        <p role="note" className="-mx-4 -mb-4 bg-[#1C1C1E] px-4 py-2 text-center text-sm font-semibold text-white">Esto es una demo. No se cobra nada.</p>
+      ) : null}
       <header className="-mx-4 bg-primary px-4 pb-4 pt-5 text-primary-foreground">
         <div className="flex items-center gap-3">
           <BrandMark name={state.restaurant.name} logoUrl={state.restaurant.logoUrl} className="size-14 rounded-2xl" />
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-xl leading-tight font-extrabold">{state.restaurant.name}</h1>
-            <p className="text-sm font-medium opacity-90">Mesa {state.tableNumber}</p>
+            <p className="text-sm font-medium opacity-90">Mesa {displayTableNumber(state.tableNumber)}</p>
           </div>
         </div>
       </header>

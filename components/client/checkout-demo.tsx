@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckIcon } from "lucide-react";
 
+import { displayTableNumber } from "@/lib/demo/display";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { DivimesaFooter } from "@/components/brand/divimesa-logo";
 import { ErrorNote } from "@/components/ui/error-note";
@@ -61,7 +62,7 @@ export function CheckoutDemo({ receipt }: { receipt: Receipt }) {
       <BrandMark name={receipt.restaurant} logoUrl={receipt.logoUrl} className="size-12 rounded-xl" />
       <div className="min-w-0">
         <h1 className="truncate text-lg leading-tight font-extrabold">{receipt.restaurant}</h1>
-        <p className="text-sm opacity-90">Mesa {receipt.tableNumber}</p>
+        <p className="text-sm opacity-90">Mesa {displayTableNumber(receipt.tableNumber)}</p>
       </div>
     </header>
   );

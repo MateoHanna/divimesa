@@ -134,6 +134,15 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 - Logo: todos los archivos (favicon, apple-icon, og, PWA, panel) son del diseño nuevo; se borraron los SVG de la plantilla de Next en `public/`.
 - `APP_URL` en Vercel: no pude confirmarlo (403 del MCP). Mateo debe revisar `/panel/qr`.
 
+## Parte B: demo pública con una cuenta por visita (oct 2026)
+
+- `/demo/mesa` crea una cuenta nueva por visita (copia de la cuenta de ejemplo de la Mesa 4) en una mesa oculta (`tables.is_hidden`, numeradas desde 1001; quien prueba siempre ve "Mesa 4") y redirige a `/demo/mesa/<token>`. Máximo 10 por IP por hora, contado en la base (`demo_visits`, guarda un hash HMAC de la IP, nunca la IP). Cada visita borra las mesas ocultas de más de 24 horas (con sus cuentas, items y pagos). Si se pasa del límite: página 429 en español.
+- `/demo/mesa/<token>`: en 1024 px o más, dos columnas ("Así lo ve su cliente" con la cuenta en un marco de celular, "Así lo ve usted" con la mesa como la ve el salonero, en vivo) y abajo un QR a la misma cuenta. En celular, la cuenta del cliente con la franja "Esto es una demo. No se cobra nada." (también sale en `/m/<token>` de cualquier restaurante `is_demo`, salvo con `?embed=1`).
+- Ruta pública de solo lectura `GET /api/demo/mesa/<token>`: solo responde mesas de restaurantes con `is_demo`; para restaurantes reales o tokens inexistentes, 404 (con tests).
+- El panel, la hoja de QR y la demo en vivo ocultan las mesas `is_hidden`.
+- Migración `20261010000010_demo_visits.sql`: agrega `restaurants.is_demo`, `tables.is_hidden`, tabla `demo_visits`, secuencia y función `create_demo_visit`. Marca como demo al primer restaurante creado. Aplicar ANTES del push.
+- Pendiente (B4): SINPE de prueba y botón "Recibido" en la columna derecha, después de la parte C.
+
 ## Pendientes
 
 - [ ] **Mateo:** en Vercel, Settings, Environment Variables, editar `APP_URL` (Production) a `https://divimesa.com` y redesplegar. Después abrir `/panel/qr` y ver que los QR digan divimesa.com. En Settings, Domains, confirmar que `www.divimesa.com` redirige a `divimesa.com`. Los QR ya impresos con vercel.app siguen sirviendo.
