@@ -13,6 +13,8 @@ import type {
 
 // Filas tal como llegan de la base de datos.
 export interface RestaurantRow {
+  id?: string;
+  show_decline_demo?: boolean;
   name: string;
   primary_color: string;
   service_rate: number | string;
@@ -168,7 +170,10 @@ export function buildPanelState(input: {
     .map((m) => ({ id: m.id, name: m.name, category: m.category, price: m.price }));
 
   return {
-    restaurant: { name: restaurant.name, primaryColor: restaurant.primary_color },
+    restaurant: {
+      id: restaurant.id ?? "", name: restaurant.name, primaryColor: restaurant.primary_color,
+      showDeclineDemo: !!restaurant.show_decline_demo,
+    },
     tables,
     menu,
     serverTime: now.toISOString(),

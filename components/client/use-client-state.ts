@@ -59,5 +59,5 @@ export function useClientState(
     };
   }, [poll]);
 
-  return { state, synced, apply, skew };
+  return { state, synced, apply, skew, refresh: poll };
 }

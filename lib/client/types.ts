@@ -52,6 +52,8 @@ export interface ClientState {
   serverTime: string;
   /** Id de la cuenta actual (o de la última, si ya terminó). Cambia cuando abren una cuenta nueva. */
   billId: string | null;
+  /** Solo en view 'finished': 'paid' si se pagó completa, 'closed' si el salonero la cerró con saldo. */
+  outcome: "paid" | "closed" | null;
   bill: ClientBill | null;
 }
 

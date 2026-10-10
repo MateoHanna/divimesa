@@ -21,7 +21,7 @@ export async function rpc<T = unknown>(name: string, args: Record<string, unknow
 export async function loadPanelState(now: Date = new Date()): Promise<PanelState> {
   const db = getAdminClient();
   const restaurant = check(
-    await db.from("restaurants").select("id,name,primary_color,service_rate,vat_rate,prices_include_taxes")
+    await db.from("restaurants").select("id,name,primary_color,service_rate,vat_rate,prices_include_taxes,show_decline_demo")
       .order("created_at").limit(1).single<RestaurantRow & { id: string }>(),
   );
   const [tables, menu] = await Promise.all([

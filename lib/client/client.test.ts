@@ -15,7 +15,8 @@ function stateWith(o: { paidOutside?: number; balance?: number; all?: number; it
   const lines = o.lines ?? [line("a", 5500), line("b", 5500), line("c", 6200)];
   const balance = o.balance ?? 21156;
   return {
-    view: "open", tableNumber: 2, serverTime: "2026-10-09T12:00:00Z", billId: "b1",
+    view: "open", tableNumber: 2, serverTime: "2026-10-09T12:00:00Z", outcome: null,
+  billId: "b1",
     restaurant: { name: "Demo", primaryColor: "#0f766e", serviceRate: 0.1, vatRate: 0.13, pricesIncludeTaxes: false },
     bill: {
       id: "b1", lines,

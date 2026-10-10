@@ -6,11 +6,12 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 
 | Fase | Estado |
 | --- | --- |
-| 0. Proyecto, Supabase, Tailwind, shadcn, deploy | Completa, salvo vincular el repo al proyecto de Vercel para que cada push despliegue solo |
+| 0. Proyecto, Supabase, Tailwind, shadcn, deploy | Completa. El repo está conectado a Vercel: cada push despliega solo |
 | 1. Migraciones, seed, `lib/money.ts` | Completa |
 | 2. Panel del salonero (`/panel`) | Código completo y probado en lógica y SQL; falta la prueba de punta a punta en el sitio desplegado |
 | 3. Página del cliente (`/m/[token]`) | Código completo, SQL probado contra Supabase y 85 tests; falta probarla en un celular real |
-| 4 a 6 | Sin empezar |
+| 4. Checkout simulado, webhook, comprobante, Realtime | Código completo; SQL y Realtime probados contra Supabase; falta la prueba a mano en celulares tras el deploy |
+| 5 y 6 | Sin empezar |
 
 ## Qué quedó
 
@@ -60,8 +61,23 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 - Confirmado en SQL (transacción revertida): `reset_demo()` borra pagos (incluidos pendientes) y reservas; queda 1 cuenta abierta en la Mesa 4 con total ₡48 585.
 - **Sin probar en un navegador real a 390 px**: la VM no puede iniciar sesión en el sitio (el PIN no lo escribe Claude).
 
+**Fase 4 (checkout simulado, webhook, comprobante, Realtime)**
+- Migración `20261009000007_checkout.sql` (aplicada en Supabase): `restaurants.show_decline_demo`, `fail_payment(provider_ref)`, `payment_receipt(payment_id)` y `client_state` con `outcome` (`paid` o `closed`) cuando la cuenta terminó.
+- `/checkout-demo/[paymentId]`: monto, propina, método, "Pagar" y "Volver". "Pagar" llama a `POST /api/checkout-demo/[id]/pay`, que espera 1,5 s, manda el webhook firmado a `/api/webhooks/mock` y **espera a que el webhook termine antes de responder** (no queda nada en segundo plano que Vercel pueda cortar).
+- Webhook `POST /api/webhooks/[provider]`: valida la firma HMAC (401 si falla, 400 si el cuerpo no sirve, 404 si el pago no existe), luego `confirm_payment` o `fail_payment`. Repetido no descuenta dos veces (probado en SQL y en Vitest). La lógica está en `lib/payments/webhook.ts` y `lib/payments/mock-checkout.ts`.
+- Interruptor "Mostrar 'Simular rechazo' en el checkout" en el menú del panel, guardado por restaurante (`restaurants.show_decline_demo`), apagado por defecto. Cuando está encendido, el checkout muestra un enlace gris "Simular rechazo" al pie. El servidor también lo exige: con el interruptor apagado, el rechazo responde 403. "Reiniciar demo" y "Restaurar valores de fábrica" no lo tocan.
+- Rechazo: el pago pasa a fallido, se libera lo apartado y el cliente vuelve a `/m/<token>` con "El pago fue rechazado y no se cobró nada...".
+- Comprobante (en la misma URL del checkout cuando el pago ya está pagado): monto, propina, total, método, fecha y "Factura enviada a correo@..." si puso correo. No sale ningún correo.
+- Cuenta terminada: "Esta cuenta ya está pagada. ¡Gracias!" si se pagó completa (aunque el salonero ya liberó la mesa) y "Esta cuenta ya se cerró." si se cerró con saldo pendiente.
+- Realtime: el panel escucha `restaurant:<uuid>` y la página del cliente `table:<uuid>`. Cada mensaje dispara una consulta inmediata (con 120 ms de espera para juntar varios). La consulta cada 3 s sigue como respaldo. La librería de Supabase se carga después de mostrar la cuenta.
+- **Realtime verificado en un navegador real** (panel integrado de la app de escritorio, suscripción desde el dominio de producción con la anon key): conectó (`SUBSCRIBED`), recibió `realtime.send` directo y también el aviso que dispara el trigger al abrir una cuenta. Latencia medida de punta a punta: unos 84 ms (reloj del navegador contra reloj de la base, con la salvedad de que pueden diferir unos ms). Para llegar a "menos de 2 s" en el panel falta sumar la consulta que sigue al aviso (una sola API route); eso se confirma con el pitido en el celular.
+- Prueba de aceptación del SPEC: `supabase/tests/acceptance.sql` cubre los pasos 1 a 10 contra las funciones SQL (todo coincide con lo esperado, valores al final del archivo), más rechazo y cuenta cerrada. 99 tests de Vitest.
+- **Sin probar en celulares reales** (la VM no puede iniciar sesión en el panel): el pitido, el diseño en pantalla chica y el flujo completo en el sitio desplegado. Lista corta en la respuesta de cierre de fase.
+
 ## Decisiones tomadas
 
+- El rechazo discreto es un interruptor del panel por restaurante (no un parámetro en la URL), así se activa antes de una demo sin tocar la dirección del celular.
+- El comprobante vive en la URL del checkout y se identifica solo por el uuid del pago (no adivinable). Muestra el correo de factura a quien tenga esa URL.
 - Líneas separadas por cantidad (3 imperiales = 3 líneas), agrupadas visualmente en el panel.
 - "Reiniciar demo" solo borra cuentas y pagos y deja la Mesa 4 abierta; conserva nombre, color, tasas, menú y mesas. "Restaurar valores de fábrica" vuelve todo al seed. Ambos conservan las mesas y sus QR.
 - Canales de Realtime con uuid (`bill:`, `table:`, `restaurant:` + uuid), nunca con el número de mesa. El mensaje solo dice "cambió algo"; el navegador vuelve a pedir el estado a una API route. Las tablas no tienen políticas para `anon` y las funciones solo las ejecuta `service_role`.
@@ -82,13 +98,10 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 
 ## Pendientes
 
-- [ ] **Vincular el repo al proyecto de Vercel** (auto-deploy en cada push). Las herramientas de Claude no pueden reconectar un proyecto existente: en Vercel, proyecto `demo-qr`, Settings, Git, Connect Git Repository, elegir `MateoHanna/demo-qr`. Comprobación: el siguiente `git push` debería crear un deploy de producción solo. Hasta entonces los deploys se hacen desde Claude con el conector (`create_deployment` con `gitSource` de la rama `main`).
 - [ ] Las tres claves secretas están en Vercel solo para **production**. Los deploys de preview no las tienen (no importa para `/api/health`, pero sí para el panel y los pagos). Si se usan previews, agregarles también esos destinos.
 - [ ] Mejorar `/api/health` para que consulte una tabla (hoy solo verifica la conexión con Supabase).
-- [ ] **Realtime sin verificar.** `realtime.messages` no tenía particiones (proyecto nuevo), así que `realtime.send` falla en silencio. Probablemente se crean cuando conecta el primer cliente. Verificar en la fase 4 con un navegador real.
 
 ## Siguiente paso
 
-1. Mateo hace `git push` del commit de la fase 3 y prueba `/m/<token>` en el celular (ver "Cómo probar" en la respuesta de cierre de fase) y anota qué falla.
-2. Fase 4: `/checkout-demo` con botón "Pagar" (1,5 s de espera y opción "Pago rechazado"), webhook `/api/webhooks/[provider]` que llama a `confirm_payment`, recibo con línea de factura, y verificar Realtime.
-3. Fases 5 y 6 según SPEC.md.
+1. Mateo hace `git push` del commit de la fase 4 (se despliega solo) y corre la lista de pruebas a mano (ver la respuesta de cierre de fase). Anotar acá qué falla.
+2. Fase 5 (pulido de la demo) y, si se quiere, fase 6 (Stripe en modo prueba), según SPEC.md.

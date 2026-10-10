@@ -8,6 +8,8 @@ import { earliestReservation, quote, selectableLines } from "@/lib/client/quote"
 import { formatCRC } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
+import { useBroadcast } from "@/components/realtime/use-broadcast";
+
 import { call } from "./call";
 import { EqualSplit } from "./equal-split";
 import { PaySummary, type TipUi } from "./pay-summary";
@@ -36,14 +38,16 @@ function cleanInvoice(i: InvoiceInput): InvoiceInput | undefined {
   return Object.keys(out).length ? out : undefined;
 }
 
-export function ClientApp({ token, initial }: { token: string; initial: ClientState }) {
+const DECLINED = "El pago fue rechazado y no se cobró nada. Puede intentarlo de nuevo o elegir otro método.";
+
+export function ClientApp({ token, initial, channel, flash }: { token: string; initial: ClientState; channel: string | null; flash?: "declined" }) {
   const [mode, setMode] = useState<PayMode | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [tipUi, setTipUi] = useState<TipUi>("none");
   const [otherTip, setOtherTip] = useState("");
   const [method, setMethod] = useState<PayMethod>("card");
   const [invoice, setInvoice] = useState<InvoiceInput>({});
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(flash === "declined" ? DECLINED : null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -104,7 +108,12 @@ export function ClientApp({ token, initial }: { token: string; initial: ClientSt
     }
   }, [changeMode, setSel]);
 
-  const { state, synced, apply, skew } = useClientState(token, initial, onApply);
+  const { state, synced, apply, skew, refresh } = useClientState(token, initial, onApply);
+  useBroadcast(channel, refresh);
+
+  useEffect(() => {
+    if (flash) window.history.replaceState(null, "", window.location.pathname);
+  }, [flash]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -219,7 +228,14 @@ export function ClientApp({ token, initial }: { token: string; initial: ClientSt
         <p role="status" className="rounded-2xl border p-5 text-lg">Esta mesa todavía no tiene una cuenta abierta. Pídale la cuenta al salonero.</p>
       ) : null}
 
-      {state.view === "finished" ? (
+      {state.view === "finished" && state.outcome === "closed" ? (
+        <p role="status" className="rounded-2xl border p-6 text-center text-xl font-semibold">
+          Esta cuenta ya se cerró.
+          <span className="mt-1 block text-base font-normal text-muted-foreground">Si tiene dudas, pregunte al salonero.</span>
+        </p>
+      ) : null}
+
+      {state.view === "finished" && state.outcome !== "closed" ? (
         <div role="status" className="flex flex-col items-center gap-2 rounded-2xl border border-emerald-300 bg-emerald-50 p-8 text-center text-emerald-950">
           <CheckIcon className="size-10" aria-hidden />
           <p className="text-2xl font-bold">Esta cuenta ya está pagada. ¡Gracias!</p>

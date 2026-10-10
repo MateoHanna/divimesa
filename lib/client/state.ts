@@ -16,6 +16,7 @@ interface RawState {
   bill: null | {
     id: string;
     status: string;
+    outcome?: "paid" | "closed";
     lines?: RawLine[];
     totals?: { items_sum: number; subtotal: number; service: number; vat: number; total: number; paid: number; balance: number };
     split?: null | { parts: number; share: number; paid_parts: number; remaining: number; due: number };
@@ -52,6 +53,7 @@ export function toClientState(raw: RawState): ClientState {
     tableNumber: raw.table_number,
     serverTime: raw.server_time,
     billId: b?.id ?? null,
+    outcome: raw.view === "finished" ? (b?.outcome ?? "paid") : null,
     restaurant: {
       name: raw.restaurant.name,
       primaryColor: raw.restaurant.primary_color,

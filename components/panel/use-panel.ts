@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { newlyPaidTables, newPaymentCount } from "@/lib/panel/state";
 import type { PanelState } from "@/lib/panel/types";
 
+import { useBroadcast } from "@/components/realtime/use-broadcast";
+
 import { beep } from "./sound";
 
 const POLL_MS = 3000;
@@ -17,7 +19,7 @@ export interface Notice {
 
 /**
  * Estado del panel con consulta cada 3 s solo mientras la pestaña está visible
- * (Realtime todavía no está verificado). Avisa con sonido de pagos nuevos.
+ * (respaldo de Realtime). Avisa con sonido de pagos nuevos.
  */
 export function usePanel(onUnauthorized: () => void) {
   const [state, setState] = useState<PanelState | null>(null);
@@ -109,6 +111,9 @@ export function usePanel(onUnauthorized: () => void) {
     },
     [apply, notify, onUnauthorized],
   );
+
+  // Realtime avisa al instante; la consulta cada 3 s queda como respaldo.
+  useBroadcast(state?.restaurant.id ? `restaurant:${state.restaurant.id}` : null, refresh);
 
   return { state, notices, busy, act, refresh };
 }

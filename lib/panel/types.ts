@@ -69,7 +69,7 @@ export interface PanelMenuItem {
 }
 
 export interface PanelState {
-  restaurant: { name: string; primaryColor: string };
+  restaurant: { id: string; name: string; primaryColor: string; showDeclineDemo: boolean };
   tables: PanelTable[];
   menu: PanelMenuItem[];
   serverTime: string;

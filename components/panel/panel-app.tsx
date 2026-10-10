@@ -84,7 +84,20 @@ export function PanelApp() {
       </div>
 
       <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
-        <DialogContent title="Menú del panel" description="Las dos opciones de reinicio piden confirmación.">
+        <DialogContent title="Menú del panel" description="Las opciones de reinicio piden confirmación.">
+          <button type="button" role="switch" aria-checked={!!state?.restaurant.showDeclineDemo} disabled={busy || !state}
+            onClick={() => act("/api/panel/settings", "PATCH", { showDeclineDemo: !state?.restaurant.showDeclineDemo },
+              state?.restaurant.showDeclineDemo ? "Simular rechazo apagado" : "Simular rechazo encendido")}
+            className="flex min-h-16 items-center justify-between gap-3 rounded-xl border px-4 py-2 text-left disabled:opacity-50">
+            <span>
+              <span className="block font-medium">{"Mostrar 'Simular rechazo' en el checkout"}</span>
+              <span className="block text-sm text-muted-foreground">Para demos. Apagado por defecto.</span>
+            </span>
+            <span aria-hidden className={cn("flex h-7 w-12 shrink-0 items-center rounded-full p-0.5 transition-colors",
+              state?.restaurant.showDeclineDemo ? "bg-primary" : "bg-muted-foreground/30")}>
+              <span className={cn("size-6 rounded-full bg-white shadow transition-transform", state?.restaurant.showDeclineDemo && "translate-x-5")} />
+            </span>
+          </button>
           <Button variant="outline" size="lg" asChild>
             <Link href="/panel/qr"><PrinterIcon /> Imprimir QR de todas las mesas</Link>
           </Button>
