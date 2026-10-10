@@ -97,6 +97,8 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 - Vista previa al compartir: Open Graph y Twitter en `app/layout.tsx`, imagen `public/brand/og-divimesa.png` (1200x630), `metadataBase` fijo a `https://divimesa.com` (`lib/brand.ts`).
 - Verificado en un navegador del contenedor: la portada a 390 y 1280 px. Sin ver en pantalla: panel, cliente y `/demo` con la marca nueva.
 - Dominio: `https://divimesa.com/api/health` responde con esta app (mismo Supabase). No pude leer ni editar el proyecto de Vercel desde la sesión (403 de permisos), así que `APP_URL` sigue en `https://demo-qr-steel.vercel.app` y el redirect de `www` sin confirmar.
+- Ajustes de la portada: "Ingresar" arriba a la derecha lleva a `/panel` (se quitó del pie). El tiquete de ejemplo calcula el saldo con `computeTotals` (₡13 400 de platos, servicio 10 % e IVA 13 % = ₡16 482) y dice "Incluye servicio e IVA". Sección "Para el restaurante" con el segundo botón de WhatsApp. El video queda oculto hasta definir `NEXT_PUBLIC_DEMO_VIDEO_URL` (por ejemplo `/brand/demo.mp4` con el archivo en `public/brand/`) y redesplegar.
+- Panel instalable: `public/panel.webmanifest` (inicio y alcance `/panel`, `display: standalone`, íconos `public/brand/pwa-*.png`) enlazado desde `app/panel/page.tsx`, más las metas de iOS. En Android/Chrome se agrega desde el menú ("Instalar app" o "Agregar a pantalla de inicio"); en iPhone/iPad, Compartir y "Agregar a inicio". No se probó en un dispositivo real.
 - Sobrantes: `.git/harness-src.tgz` y `.git/landing-src.tgz` son archivos temporales míos, se pueden borrar.
 
 ## Decisiones tomadas
