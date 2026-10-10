@@ -12,6 +12,7 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 | 3. Página del cliente (`/m/[token]`) | Código completo, SQL probado contra Supabase y 85 tests; falta probarla en un celular real |
 | 4. Checkout simulado, webhook, comprobante, Realtime | Código completo; SQL y Realtime probados contra Supabase; falta la prueba a mano en celulares tras el deploy |
 | 5. Pulido de la demo (marca, `/demo`, avisos, animaciones, estados de carga y error) | Código completo, tsc, eslint, 115 tests y `next build` limpios; migración 0008 aplicada; falta la prueba visual a mano |
+| 5b. Marca Divimesa, portada, vista previa, dominio | Código completo; migración 0009 aplicada; falta cambiar `APP_URL` a mano (ver Pendientes) |
 | 6 | Sin empezar |
 
 ## Qué quedó
@@ -86,6 +87,18 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 - **Sin probar**: nada de la fase 5 se vio en un navegador real (la VM no puede entrar al panel de producción). Pendiente a mano: subir logo y cambiar color, `/demo`, pitidos, parpadeo, aviso fijo, pantallas de error, diseño en celular chico.
 - Sobrante: `.git/harness-src.tgz` es un archivo temporal mío dentro de `.git`; se puede borrar. `factory_reset` no reinicia `show_decline_demo`. No se agregó la marca "Divimesa" a la interfaz.
 
+**Fase 5b (marca Divimesa)**
+- Archivos de marca en `public/brand/` usados tal cual. `app/icon.svg` y `app/apple-icon.png` salen de `divimesa-app.*`, `app/favicon.ico` se generó del PNG de 1024. Logo horizontal en el panel (`components/brand/divimesa-logo.tsx`) y pie "Pagos con Divimesa" en la página del cliente y el checkout.
+- Tipografía Outfit con `next/font/local` (`app/fonts/outfit-latin-wght.woff2`, licencia OFL en la misma carpeta). Se copió el archivo del paquete `@fontsource-variable/outfit` sin dejarlo como dependencia, porque la VM no alcanza Google Fonts y la regla es no sumar dependencias. Solo subconjunto latino (32 KB).
+- Colores: escarlata `#D91E18` es el color por defecto del restaurante (migración 0009: columna, fila actual si seguía en `#0f766e`, y `factory_reset`). Si el dueño elige otro color, los botones lo siguen. Texto sobre el color elegido: blanco, casi negro `#111` o negro puro según contraste (4,5 o más garantizado, probado con 216 colores).
+- Errores en ámbar con ícono (`components/ui/error-note.tsx`, y `--destructive` es ámbar `#b45309`). El rojo queda solo para la marca. "pagado" sigue en verde.
+- Panel: nombre del restaurante en grande y logo de Divimesa chico al lado.
+- Portada `/`: frase, cuenta de ejemplo con platos tachados, tres pasos, botón a `https://wa.me/50671731226`, hueco de video (`VIDEO_SRC` en `app/page.tsx`; con una dirección ahí aparece el reproductor). Sin precios, tratando de usted.
+- Vista previa al compartir: Open Graph y Twitter en `app/layout.tsx`, imagen `public/brand/og-divimesa.png` (1200x630), `metadataBase` fijo a `https://divimesa.com` (`lib/brand.ts`).
+- Verificado en un navegador del contenedor: la portada a 390 y 1280 px. Sin ver en pantalla: panel, cliente y `/demo` con la marca nueva.
+- Dominio: `https://divimesa.com/api/health` responde con esta app (mismo Supabase). No pude leer ni editar el proyecto de Vercel desde la sesión (403 de permisos), así que `APP_URL` sigue en `https://demo-qr-steel.vercel.app` y el redirect de `www` sin confirmar.
+- Sobrantes: `.git/harness-src.tgz` y `.git/landing-src.tgz` son archivos temporales míos, se pueden borrar.
+
 ## Decisiones tomadas
 
 - El rechazo discreto es un interruptor del panel por restaurante (no un parámetro en la URL), así se activa antes de una demo sin tocar la dirección del celular.
@@ -110,10 +123,11 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 
 ## Pendientes
 
+- [ ] **Mateo:** en Vercel, Settings, Environment Variables, editar `APP_URL` (Production) a `https://divimesa.com` y redesplegar. Después abrir `/panel/qr` y ver que los QR digan divimesa.com. En Settings, Domains, confirmar que `www.divimesa.com` redirige a `divimesa.com`. Los QR ya impresos con vercel.app siguen sirviendo.
 - [ ] Las tres claves secretas están en Vercel solo para **production**. Los deploys de preview no las tienen (no importa para `/api/health`, pero sí para el panel y los pagos). Si se usan previews, agregarles también esos destinos.
 - [ ] Mejorar `/api/health` para que consulte una tabla (hoy solo verifica la conexión con Supabase).
 
 ## Siguiente paso
 
-1. Mateo hace `git push` del commit de la fase 5 (se despliega solo) y corre la lista de pruebas a mano (ver la respuesta de cierre de fase). Anotar acá qué falla.
+1. Mateo hace `git push` de los commits de la fase 5 y 5b (se despliega solo) y corre la lista de pruebas a mano (ver la respuesta de cierre de fase). Anotar acá qué falla.
 2. Si se quiere, fase 6 (Stripe en modo prueba), según SPEC.md.

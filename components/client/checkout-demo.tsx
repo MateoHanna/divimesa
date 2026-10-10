@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { CheckIcon } from "lucide-react";
 
 import { BrandMark } from "@/components/brand/brand-mark";
+import { DivimesaFooter } from "@/components/brand/divimesa-logo";
+import { ErrorNote } from "@/components/ui/error-note";
 import { Button } from "@/components/ui/button";
 import { brandVars } from "@/lib/branding";
 import { METHOD_LABELS, type Receipt } from "@/lib/client/receipt";
@@ -89,6 +91,7 @@ export function CheckoutDemo({ receipt }: { receipt: Receipt }) {
         ) : null}
         <p className="text-xs text-muted-foreground">Demostración: no se cobró dinero real ni se envió ningún correo.</p>
         <Button size="xl" onClick={() => router.push(back)}>Volver a la cuenta</Button>
+        <DivimesaFooter className="mt-auto" />
       </main>
     );
   }
@@ -99,6 +102,7 @@ export function CheckoutDemo({ receipt }: { receipt: Receipt }) {
         {head}
         <p role="status" className="text-base">Este pago ya no está activo. No se cobró nada.</p>
         <Button size="xl" onClick={() => router.push(back)}>Volver a la cuenta</Button>
+        <DivimesaFooter className="mt-auto" />
       </main>
     );
   }
@@ -114,13 +118,14 @@ export function CheckoutDemo({ receipt }: { receipt: Receipt }) {
       </Button>
       <Button size="xl" variant="outline" disabled={!!busy} onClick={volver}>Volver</Button>
       {working ? <p role="status" className="text-center text-sm text-muted-foreground">No cierre esta pantalla.</p> : null}
-      {error ? <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
+      {error ? <ErrorNote>{error}</ErrorNote> : null}
       {receipt.showDeclineDemo ? (
         <button type="button" disabled={!!busy} onClick={() => submit("failed")}
           className="mx-auto mt-6 p-2 text-xs text-muted-foreground/70 underline disabled:opacity-50">
           {busy === "declining" ? "Rechazando…" : "Simular rechazo"}
         </button>
       ) : null}
+      <DivimesaFooter className="mt-auto" />
     </main>
   );
 }

@@ -15,7 +15,7 @@ import { prepareLogo } from "./logo-image";
 
 type Act = (url: string, method: "POST" | "PATCH" | "DELETE", body?: unknown, okText?: string) => Promise<boolean>;
 
-const PRESETS = ["#0f766e", "#15803d", "#1d4ed8", "#6d28d9", "#be185d", "#b91c1c", "#c2410c", "#a16207", "#111827"];
+const PRESETS = ["#D91E18", "#0f766e", "#15803d", "#1d4ed8", "#6d28d9", "#be185d", "#b91c1c", "#c2410c", "#a16207", "#111827"];
 
 export function BrandingDialog({
   open, onOpenChange, restaurant, act, busy, onError,
@@ -97,12 +97,12 @@ function Form({
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <input type="color" aria-label="Elegir otro color" value={normalizeHex(color) ?? "#0f766e"} onChange={(e) => pickColor(e.target.value)}
+          <input type="color" aria-label="Elegir otro color" value={normalizeHex(color) ?? "#D91E18"} onChange={(e) => pickColor(e.target.value)}
             className="h-12 w-14 shrink-0 cursor-pointer rounded-lg border bg-transparent p-1" />
           <Input value={hex} aria-label="Color en formato #rrggbb" maxLength={7} className="h-12 font-mono text-base"
             onChange={(e) => { setHex(e.target.value); const n = normalizeHex(e.target.value); if (n) setColor(n); }} />
         </div>
-        {normalizeHex(hex) === null ? <p role="alert" className="text-sm text-destructive">Escriba el color como #0f766e.</p> : null}
+        {normalizeHex(hex) === null ? <p role="alert" className="text-sm text-destructive">Escriba el color como #D91E18.</p> : null}
       </fieldset>
 
       <div className="flex flex-col gap-2">

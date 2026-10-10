@@ -6,9 +6,11 @@ import { CheckIcon, LockIcon, ShieldCheckIcon, WifiOffIcon } from "lucide-react"
 import type { ClientState, InvoiceInput, PayMethod, PayMode, TipChoice, Unavailable } from "@/lib/client/types";
 import { earliestReservation, quote, selectableLines } from "@/lib/client/quote";
 import { formatCRC } from "@/lib/money";
+import { ErrorNote } from "@/components/ui/error-note";
 import { cn } from "@/lib/utils";
 
 import { BrandMark } from "@/components/brand/brand-mark";
+import { DivimesaFooter } from "@/components/brand/divimesa-logo";
 import { useBroadcast } from "@/components/realtime/use-broadcast";
 import { AnimatedMoney } from "@/components/ui/animated-number";
 import { useJustPaid } from "@/components/ui/use-just-paid";
@@ -349,7 +351,7 @@ export function ClientApp({ token, initial, channel, flash, host }: { token: str
               disabledReason={disabledReason} submitting={submitting} onPay={pay} />
           ) : null}
 
-          {error ? <p role="alert" className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error}</p> : null}
+          {error ? <ErrorNote>{error}</ErrorNote> : null}
         </>
       ) : null}
 
@@ -364,6 +366,8 @@ export function ClientApp({ token, initial, channel, flash, host }: { token: str
           <li>Si algo no le parece bien, pídale ayuda al salonero antes de pagar.</li>
         </ul>
       </details>
+
+      <DivimesaFooter />
 
       <SplitItemDialog target={splitTarget} onClose={() => setSplitTarget(null)} busy={busy} onConfirm={splitItem} />
     </div>

@@ -22,8 +22,19 @@ describe("colores de la marca", () => {
     }
   });
 
-  it("brandVars cae al verde por defecto si el color no sirve", () => {
-    expect(brandVars("nada")["--brand"]).toBe("#0f766e");
+  it("el texto cambia solo a oscuro con colores claros y nunca baja de 4,5 de contraste", () => {
+    for (const c of ["#fde047", "#a7f3d0", "#fbcfe8", "#e5e7eb", "#bae6fd", "#ffffff"]) expect(readableOn(c)).toBe("#111111");
+    const steps = [0, 51, 102, 153, 204, 255];
+    let worst = 21;
+    for (const r of steps) for (const g of steps) for (const b of steps) {
+      const hex = "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+      worst = Math.min(worst, contrastRatio(hex, readableOn(hex)));
+    }
+    expect(worst).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("brandVars cae al escarlata de Divimesa por defecto si el color no sirve", () => {
+    expect(brandVars("nada")["--brand"]).toBe("#D91E18");
     expect(brandVars("#FACC15")).toEqual({ "--brand": "#facc15", "--primary-foreground": "#111111" });
   });
 

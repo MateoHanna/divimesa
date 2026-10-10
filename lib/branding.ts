@@ -25,13 +25,18 @@ export function contrastRatio(a: string, b: string): number {
 }
 
 /** Color de texto con mejor contraste sobre el fondo dado (blanco o casi negro). */
-export function readableOn(hex: string): "#ffffff" | "#111111" {
-  return contrastRatio(hex, "#ffffff") >= contrastRatio(hex, "#111111") ? "#ffffff" : "#111111";
+export function readableOn(hex: string): "#ffffff" | "#111111" | "#000000" {
+  const white = contrastRatio(hex, "#ffffff");
+  const dark = contrastRatio(hex, "#111111");
+  const best = white >= dark ? "#ffffff" : "#111111";
+  if (Math.max(white, dark) >= 4.5) return best;
+  // Tonos medios: ni el blanco ni el casi negro llegan a 4,5. El negro puro sí.
+  return "#000000";
 }
 
 /** Variables CSS de la marca: el color del restaurante y el texto legible encima. */
 export function brandVars(hex: string): Record<string, string> {
-  const color = normalizeHex(hex) ?? "#0f766e";
+  const color = normalizeHex(hex) ?? "#D91E18";
   return { "--brand": color, "--primary-foreground": readableOn(color) };
 }
 

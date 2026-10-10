@@ -6,6 +6,7 @@ import Link from "next/link";
 import { CircleCheckIcon, LogOutIcon, MoreVerticalIcon, PaletteIcon, PrinterIcon, RotateCcwIcon, WifiOffIcon } from "lucide-react";
 
 import { BrandMark } from "@/components/brand/brand-mark";
+import { DivimesaLogo } from "@/components/brand/divimesa-logo";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { brandVars } from "@/lib/branding";
@@ -45,10 +46,12 @@ export function PanelApp() {
 
   return (
     <div className="min-h-dvh bg-muted/40" style={state ? (brandVars(state.restaurant.primaryColor) as React.CSSProperties) : undefined}>
-      <header className="sticky top-0 z-30 flex items-center gap-2 border-b bg-background px-4 py-3">
-        {state ? <BrandMark name={state.restaurant.name} logoUrl={state.restaurant.logoUrl} className="size-9 rounded-lg text-base" /> : null}
-        <h1 className="min-w-0 flex-1 truncate text-lg font-bold">{state?.restaurant.name ?? "Panel"}</h1>
-        <span className="text-xs text-muted-foreground">Salonero</span>
+      <header className="sticky top-0 z-30 flex items-center gap-3 border-b bg-background px-4 py-3">
+        {state ? <BrandMark name={state.restaurant.name} logoUrl={state.restaurant.logoUrl} className="size-10 rounded-lg text-lg" /> : null}
+        <div className="flex min-w-0 flex-1 items-center gap-x-3 gap-y-0.5 max-sm:flex-col max-sm:items-start">
+          <h1 className="min-w-0 max-w-full truncate text-2xl leading-tight font-extrabold tracking-tight">{state?.restaurant.name ?? "Panel"}</h1>
+          <DivimesaLogo className="h-4 shrink-0 opacity-90" />
+        </div>
         <Button variant="ghost" size="icon" aria-label="Menú" onClick={() => setMenuOpen(true)}><MoreVerticalIcon /></Button>
       </header>
 
