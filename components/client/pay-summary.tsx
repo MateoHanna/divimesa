@@ -67,7 +67,7 @@ export function PaySummary(p: SummaryProps) {
           <Input inputMode="numeric" aria-label="Propina en colones" placeholder="₡ 0" className="mt-2 h-12 text-lg"
             value={p.otherTip} onChange={(e) => p.onOtherTip(e.target.value)} />
         ) : null}
-        <p className="mt-2 text-xs text-muted-foreground">Va aparte del servicio. No cambia el saldo de la cuenta.</p>
+        <p className="mt-2 text-xs text-muted-foreground">La cuenta ya incluye el servicio. Esta propina es extra y opcional.</p>
       </fieldset>
 
       <div>

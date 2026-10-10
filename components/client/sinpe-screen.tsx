@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { MySinpe } from "@/lib/client/types";
 import { formatCRC } from "@/lib/money";
-import { formatSinpeNumber, plainAmount } from "@/lib/sinpe";
+import { formatSinpeNumber, plainAmount, plainSinpeNumber } from "@/lib/sinpe";
 
 /** Copia al portapapeles; si el navegador no deja, selecciona el texto para que lo copie a mano. */
 async function copyText(text: string): Promise<boolean> {
@@ -76,7 +76,7 @@ export function SinpeScreen({
         {sinpe.test ? <p className="rounded-lg bg-white/70 px-3 py-1 text-sm font-semibold">Es una demo: no se envió dinero.</p> : null}
         {onDemoConfirm ? (
           <Button size="lg" className="mt-2 h-auto min-h-14 w-full whitespace-normal bg-emerald-700 py-2 text-base font-bold text-white hover:bg-emerald-800" onClick={onDemoConfirm}>
-            Hacer de salonero: marcar «Recibido»
+            Marcar «Recibido» como salonero
           </Button>
         ) : null}
       </section>
@@ -96,7 +96,7 @@ export function SinpeScreen({
       {mine.tip > 0 ? <p className="-mt-2 text-sm text-muted-foreground">Incluye {formatCRC(mine.tip)} de propina.</p> : null}
 
       <div className="flex flex-col gap-2">
-        <Field label="Número" value={number} copy={sinpe.number} copyLabel="el número" />
+        <Field label="Número" value={number} copy={plainSinpeNumber(sinpe.number)} copyLabel="el número" />
         <Field label="Monto" value={formatCRC(total)} copy={plainAmount(total)} copyLabel="el monto" />
         {mine.code ? <Field label="En el detalle del SINPE escriba" value={mine.code} copy={mine.code} copyLabel="el código" mono /> : null}
       </div>

@@ -7,3 +7,8 @@ export function formatSinpeNumber(n: string): string {
 export function plainAmount(n: number): string {
   return String(Math.round(n));
 }
+
+/** Texto para copiar el número en la app del banco: solo dígitos. */
+export function plainSinpeNumber(n: string): string {
+  return n.replace(/\D/g, "");
+}
