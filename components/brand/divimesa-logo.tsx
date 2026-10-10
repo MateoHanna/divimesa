@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { cn } from "@/lib/utils";
 
 const LOGOS = {
@@ -16,11 +18,14 @@ export function DivimesaLogo({ variant = "horizontal", dark, className, style }:
   );
 }
 
-/** Pie discreto de las pantallas del cliente: "Pagos con" y el nombre de Divimesa. */
+/** Pie discreto de las pantallas del cliente: "Pagos con" y el nombre de Divimesa, y el enlace a la política de privacidad. */
 export function DivimesaFooter({ className }: { className?: string }) {
   return (
-    <p className={cn("flex items-center justify-center gap-1.5 pt-1 text-xs text-muted-foreground", className)}>
-      Pagos con <DivimesaLogo variant="wordmark" className="h-6" />
-    </p>
+    <div className={cn("flex flex-col items-center gap-0.5 pt-1 text-xs text-muted-foreground", className)}>
+      <p className="flex items-center justify-center gap-1.5">
+        Pagos con <DivimesaLogo variant="wordmark" className="h-6" />
+      </p>
+      <Link href="/privacidad" target="_blank" className="py-2 underline underline-offset-2">Privacidad</Link>
+    </div>
   );
 }

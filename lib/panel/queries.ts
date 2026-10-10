@@ -1,7 +1,7 @@
-import { getServerEnv } from "@/lib/env";
 import { getAdminClient } from "@/lib/supabase/server";
 
 import { buildPanelState, type BillRow, type InvoiceRow, type ItemRow, type MenuRow, type PaymentItemRow, type PaymentRow, type RestaurantRow, type TableRow } from "./state";
+import { getPanelSession } from "./session";
 import type { PanelState } from "./types";
 
 function check<T>(res: { data: T | null; error: { message: string } | null }): T {
@@ -19,22 +19,20 @@ export async function rpc<T = unknown>(name: string, args: Record<string, unknow
 }
 
 /**
- * Restaurante que muestra el panel. Mientras no haya PIN por restaurante (parte D), es el más antiguo, o el que
- * indique PANEL_RESTAURANT_ID (opcional) para probar un restaurante real sin tocar la demo.
+ * Restaurante del panel: el que dice la sesión (cookie firmada al iniciar con su código y su PIN).
+ * Nunca sale de un parámetro de la petición: cada panel solo ve y toca su propio restaurante.
  */
 export async function panelRestaurantId(): Promise<string> {
-  const fixed = getServerEnv().PANEL_RESTAURANT_ID;
-  if (fixed) return fixed;
-  const r = check(await getAdminClient().from("restaurants").select("id").order("created_at").limit(1).single<{ id: string }>());
-  return r.id;
+  const session = await getPanelSession();
+  if (!session) throw new DbError("unauthorized");
+  return session.restaurantId;
 }
 
 /** Las opciones de reinicio solo existen para el restaurante de demostración. */
 export async function requireDemoPanel(): Promise<void> {
-  const r = check(
-    await getAdminClient().from("restaurants").select("is_demo").eq("id", await panelRestaurantId()).single<{ is_demo: boolean }>(),
-  );
-  if (!r.is_demo) throw new DbError("not_demo");
+  const session = await getPanelSession();
+  if (!session) throw new DbError("unauthorized");
+  if (!session.isDemo) throw new DbError("not_demo");
 }
 
 /** Foto completa del restaurante para el panel (una sola consulta por tabla, sin N+1). */
@@ -86,26 +84,24 @@ export async function loadPanelState(now: Date = new Date()): Promise<PanelState
   return buildPanelState({ restaurant, tables: tableRows, bills, items, payments, paymentItems, invoices, menu: check(menu), now });
 }
 
-/** Token de QR de una mesa por número. Solo para la página protegida del QR. */
-export async function loadTableToken(number: number): Promise<{ token: string; number: number; restaurant: string } | null> {
-  const db = getAdminClient();
-  const { data } = await db.from("tables").select("number,qr_token,restaurants(name)").eq("restaurant_id", await panelRestaurantId())
-    .eq("number", number).eq("is_hidden", false)
-    .limit(1).maybeSingle<{ number: number; qr_token: string; restaurants: { name: string } | { name: string }[] | null }>();
-  if (!data) return null;
-  const r = Array.isArray(data.restaurants) ? data.restaurants[0] : data.restaurants;
-  return { token: data.qr_token, number: data.number, restaurant: r?.name ?? "" };
+export interface TableSheet {
+  restaurant: { name: string; primaryColor: string; logoUrl: string | null };
+  tables: { number: number; token: string }[];
 }
 
-/** Todas las mesas con su token, para la hoja de QR imprimible. Solo para páginas protegidas. */
-export async function loadAllTableTokens(): Promise<{ restaurant: string; tables: { number: number; token: string }[] }> {
+/** Todas las mesas con su token y la marca del restaurante, para la hoja de QR imprimible. Solo para páginas protegidas. */
+export async function loadAllTableTokens(): Promise<TableSheet> {
   const db = getAdminClient();
   const r = check(
-    await db.from("restaurants").select("id,name").eq("id", await panelRestaurantId()).single<{ id: string; name: string }>(),
+    await db.from("restaurants").select("id,name,primary_color,logo_url").eq("id", await panelRestaurantId())
+      .single<{ id: string; name: string; primary_color: string; logo_url: string | null }>(),
   );
   const tables = check(
     await db.from("tables").select("number,qr_token").eq("restaurant_id", r.id).eq("is_hidden", false).order("number")
       .returns<{ number: number; qr_token: string }[]>(),
   );
-  return { restaurant: r.name, tables: tables.map((t) => ({ number: t.number, token: t.qr_token })) };
+  return {
+    restaurant: { name: r.name, primaryColor: r.primary_color, logoUrl: r.logo_url },
+    tables: tables.map((t) => ({ number: t.number, token: t.qr_token })),
+  };
 }

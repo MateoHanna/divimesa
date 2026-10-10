@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "demo:video": "node scripts/demo-video/index.mjs"
+    "demo:video": "node scripts/demo-video/index.mjs",
+    "restaurante:crear": "node --env-file=.env.local scripts/crear-restaurante.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

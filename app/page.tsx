@@ -135,6 +135,7 @@ export default function Home() {
             <a className="underline underline-offset-4" href={`mailto:${BRAND.email}`}>{BRAND.email}</a>
             <a className="underline underline-offset-4" href={BRAND.whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>
             <a className="underline underline-offset-4" href={BRAND.instagram} target="_blank" rel="noopener noreferrer">Instagram {BRAND.instagramHandle}</a>
+            <Link className="underline underline-offset-4" href="/privacidad">Privacidad</Link>
           </div>
         </div>
       </footer>

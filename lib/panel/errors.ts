@@ -39,6 +39,7 @@ const ERRORS: Record<string, { status: number; message: string }> = {
   simulated_only_demo: { status: 409, message: "Los pagos simulados solo existen en el restaurante de demostración." },
   invalid_sinpe_number: { status: 400, message: "El número de SINPE Móvil debe tener 8 dígitos." },
   invalid_sinpe_holder: { status: 400, message: "Escriba el nombre del titular tal como sale en el banco." },
+  unauthorized: { status: 401, message: "Ingrese el PIN para continuar." },
   not_demo: { status: 409, message: "Esta opción solo existe en el restaurante de demostración." },
   sinpe_not_configured: { status: 409, message: "Falta el número de SINPE Móvil y el nombre del titular." },
 };

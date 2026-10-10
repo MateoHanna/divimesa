@@ -4,36 +4,43 @@ import { notFound } from "next/navigation";
 
 import { PinForm } from "@/components/panel/pin-form";
 import { PrintButton } from "@/components/panel/print-button";
-import { QrView } from "@/components/panel/qr-view";
+import { QrCard } from "@/components/panel/qr-card";
 import { Button } from "@/components/ui/button";
 import { tableUrl } from "@/lib/app-url";
-import { loadTableToken } from "@/lib/panel/queries";
+import { loadAllTableTokens } from "@/lib/panel/queries";
 import { hasPanelSession } from "@/lib/panel/session";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "QR de la mesa", robots: { index: false, follow: false } };
 
+// Una sola tarjeta, más grande (1,5 veces), en una hoja Letter.
+const PRINT_CSS = `
+@page { size: letter portrait; margin: 8mm; }
+@media print { html, body { background: #fff !important; } }
+`;
+
 export default async function QrPage({ params }: { params: Promise<{ mesa: string }> }) {
-  // Sin cookie del PIN no se consulta nada: el token de la mesa nunca sale sin sesión.
+  // Sin sesión del panel no se consulta nada: el token de la mesa nunca sale sin ella.
   if (!(await hasPanelSession())) return <PinForm />;
 
   const { mesa } = await params;
   const number = Number(mesa);
   if (!Number.isInteger(number) || number < 1 || number > 9999) notFound();
-  const table = await loadTableToken(number);
+  const { restaurant, tables } = await loadAllTableTokens();
+  const table = tables.find((t) => t.number === number);
   if (!table) notFound();
   const url = tableUrl(table.token); // siempre APP_URL + /m/<token>, nunca el número de mesa
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-xl flex-col items-center gap-6 p-6 text-center print:p-0">
+    <main className="mx-auto flex max-w-3xl flex-col items-center gap-4 p-4 print:p-0">
+      <style>{PRINT_CSS}</style>
       <div className="flex w-full justify-between print:hidden">
         <Button variant="ghost" asChild><Link href="/panel">← Volver al panel</Link></Button>
         <PrintButton />
       </div>
-      <h1 className="text-3xl font-bold">{table.restaurant}</h1>
-      <p className="text-6xl font-extrabold">Mesa {table.number}</p>
-      <QrView value={url} />
-      <p className="text-xl font-medium">Escanee para ver y pagar su cuenta</p>
+      <div className="max-w-full overflow-x-auto print:overflow-visible">
+        <QrCard brand={restaurant} number={table.number} url={url} unit={1.5} />
+      </div>
       <p className="text-sm break-all text-muted-foreground print:hidden">{url}</p>
     </main>
   );

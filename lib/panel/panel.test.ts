@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import items from "../../tests/fixtures/items-amount.json";
 import { amountForItems } from "../money";
-import { pinMatches, signSession, verifySession } from "./auth";
+import { parseSession, pinMatches, signSession, verifySession } from "./auth";
 import { mapDbError } from "./errors";
 import { createLimiter } from "./rate-limit";
 import { normalizeSinpeHolder, normalizeSinpeNumber } from "./sinpe";
@@ -19,37 +19,50 @@ import {
 } from "./state";
 import type { PanelLine } from "./types";
 
-const keys = { pin: "4821", secret: "s".repeat(40) };
+const SECRET = "s".repeat(40);
+const RID = "7df64a22-ee3f-42cf-91fa-657ae61778b3";
+const OTHER = "11111111-2222-4333-8444-555555555555";
+const T0 = 1_000_000_000_000;
 
 describe("sesión del panel", () => {
-  it("acepta un token recién firmado", () => {
-    const t = signSession(keys, 1_000_000_000_000);
-    expect(verifySession(t, keys, 1_000_000_000_000 + 1000)).toBe(true);
+  it("acepta un token recién firmado, del restaurante que dice la cookie", () => {
+    const t = signSession(RID, "hash:a", SECRET, T0);
+    expect(verifySession(t, "hash:a", SECRET, T0 + 1000)).toBe(true);
+    expect(parseSession(t)?.restaurantId).toBe(RID);
   });
   it("rechaza un token vencido", () => {
-    const t = signSession(keys, 1_000_000_000_000, 1000);
-    expect(verifySession(t, keys, 1_000_000_000_000 + 1000)).toBe(false);
+    const t = signSession(RID, "hash:a", SECRET, T0, 1000);
+    expect(verifySession(t, "hash:a", SECRET, T0 + 1000)).toBe(false);
   });
-  it("cambiar el PIN invalida la sesión", () => {
-    const t = signSession(keys, 1_000_000_000_000);
-    expect(verifySession(t, { ...keys, pin: "9999" }, 1_000_000_000_500)).toBe(false);
+  it("cambiar el PIN (el binding) invalida la sesión", () => {
+    const t = signSession(RID, "hash:a", SECRET, T0);
+    expect(verifySession(t, "hash:b", SECRET, T0 + 500)).toBe(false);
   });
   it("cambiar el secreto invalida la sesión", () => {
-    const t = signSession(keys, 1_000_000_000_000);
-    expect(verifySession(t, { ...keys, secret: "x".repeat(40) }, 1_000_000_000_500)).toBe(false);
+    const t = signSession(RID, "hash:a", SECRET, T0);
+    expect(verifySession(t, "hash:a", "x".repeat(40), T0 + 500)).toBe(false);
+  });
+  it("no se puede cambiar el restaurante de la cookie por otro", () => {
+    const t = signSession(RID, "hash:a", SECRET, T0);
+    const swapped = t.replace(RID, OTHER);
+    expect(parseSession(swapped)?.restaurantId).toBe(OTHER);
+    expect(verifySession(swapped, "hash:a", SECRET, T0 + 500)).toBe(false);
   });
   it("rechaza tokens alterados o malformados", () => {
-    const t = signSession(keys, 1_000_000_000_000);
-    const [exp, sig] = t.split(".");
-    expect(verifySession(`${Number(exp) + 99999}.${sig}`, keys, 1_000_000_000_500)).toBe(false);
-    for (const bad of ["", "abc", ".", "123.", "9999999999999.%%%", undefined, null]) {
-      expect(verifySession(bad as string, keys, 1_000_000_000_500)).toBe(false);
+    const t = signSession(RID, "hash:a", SECRET, T0);
+    const [rid, exp, sig] = t.split(".");
+    expect(verifySession(`${rid}.${Number(exp) + 99999}.${sig}`, "hash:a", SECRET, T0 + 500)).toBe(false);
+    for (const bad of ["", "abc", ".", "123.", "9999999999999.%%%", `${RID}.1.x`, `${RID}.${T0}.`, `${t}.extra`, undefined, null]) {
+      expect(verifySession(bad as string, "hash:a", SECRET, T0 + 500)).toBe(false);
     }
   });
-  it("compara el PIN", () => {
-    expect(pinMatches("4821", "4821", keys.secret)).toBe(true);
-    expect(pinMatches("4822", "4821", keys.secret)).toBe(false);
-    expect(pinMatches("", "4821", keys.secret)).toBe(false);
+  it("las sesiones del formato anterior (sin restaurante) ya no valen", () => {
+    expect(parseSession(`${T0}.abcdef`)).toBeNull();
+  });
+  it("compara el PIN de la demo", () => {
+    expect(pinMatches("4821", "4821", SECRET)).toBe(true);
+    expect(pinMatches("4822", "4821", SECRET)).toBe(false);
+    expect(pinMatches("", "4821", SECRET)).toBe(false);
   });
 });
 
