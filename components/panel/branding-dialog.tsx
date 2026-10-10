@@ -57,7 +57,7 @@ function Form({
       await act("/api/panel/branding/logo", "POST", form, "Logo actualizado");
     } catch (e) {
       onError(e instanceof Error && e.message === "logo_too_big"
-        ? "El logo pesa demasiado. Probá con una imagen más liviana."
+        ? "El logo pesa demasiado. Pruebe con una imagen más liviana."
         : "El logo tiene que ser PNG, JPG o WebP.");
     } finally {
       if (file.current) file.current.value = "";

@@ -33,7 +33,7 @@ export default async function QrPage({ params }: { params: Promise<{ mesa: strin
       <h1 className="text-3xl font-bold">{table.restaurant}</h1>
       <p className="text-6xl font-extrabold">Mesa {table.number}</p>
       <QrView value={url} />
-      <p className="text-xl font-medium">Escaneá para ver y pagar tu cuenta</p>
+      <p className="text-xl font-medium">Escanee para ver y pagar su cuenta</p>
       <p className="text-sm break-all text-muted-foreground print:hidden">{url}</p>
     </main>
   );

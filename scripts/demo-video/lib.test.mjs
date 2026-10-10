@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CAPTIONS, DEFAULTS, T, concatList, normalizeHex, outputNames, parseArgs, planFrames, slugify } from "./lib.mjs";
+import { DEFAULTS, T, concatList, normalizeHex, outputNames, parseArgs, planFrames, slugify } from "./lib.mjs";
 
 describe("argumentos", () => {
   it("usa Su Restaurante y el escarlata por defecto", () => {
@@ -41,8 +41,7 @@ describe("nombres de archivo", () => {
 
 describe("horario", () => {
   it("las escenas pedidas", () => {
-    expect(T).toEqual({ intro: 0, cuenta: 3, paga: 10, panel: 20, resto: 27, cierre: 35, fin: 40 });
-    expect(CAPTIONS.panel).toBe("Usted lo ve al instante");
+    expect(T).toEqual({ intro: 0, cuenta: 3, paga: 10, panel: 20, resto: 27, cierre: 37, contacto: 40, fin: 43 });
   });
 });
 

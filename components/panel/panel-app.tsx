@@ -92,7 +92,7 @@ export function PanelApp() {
           {selected && state ? (
             <TableDetail key={selected.id} table={selected} menu={state.menu} busy={busy} act={act} onBack={() => setSelectedId(null)} />
           ) : (
-            <p className="p-8 text-center text-muted-foreground">Elegí una mesa para ver su cuenta.</p>
+            <p className="p-8 text-center text-muted-foreground">Elija una mesa para ver su cuenta.</p>
           )}
         </aside>
       </div>
@@ -166,7 +166,7 @@ export function PanelApp() {
         onConfirm={async () => { setSelectedId(null); await act("/api/panel/demo/reset", "POST", undefined, "Demo reiniciada"); }} />
       <ConfirmDialog open={reset === "factory"} onOpenChange={(o) => !o && setReset(null)} destructive busy={busy}
         title="¿Restaurar valores de fábrica?" confirmLabel="Restaurar todo"
-        description="Se pierden las cuentas, los pagos y también tus cambios al menú, al nombre y al color del restaurante."
+        description="Se pierden las cuentas, los pagos y también sus cambios al menú, al nombre y al color del restaurante."
         onConfirm={async () => { setSelectedId(null); await act("/api/panel/demo/factory-reset", "POST", undefined, "Valores de fábrica restaurados"); }} />
     </div>
   );

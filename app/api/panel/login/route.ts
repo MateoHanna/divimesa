@@ -18,12 +18,12 @@ export async function POST(req: Request) {
   const gate = limiter.check(ip);
   if (!gate.allowed) {
     return NextResponse.json(
-      { ok: false, code: "rate_limited", error: `Demasiados intentos. Esperá ${gate.retryAfterSec} s.` },
+      { ok: false, code: "rate_limited", error: `Demasiados intentos. Espere ${gate.retryAfterSec} s.` },
       { status: 429, headers: { "Retry-After": String(gate.retryAfterSec) } },
     );
   }
   const parsed = schema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return fail(400, "Ingresá el PIN.", "invalid");
+  if (!parsed.success) return fail(400, "Ingrese el PIN.", "invalid");
 
   const keys = sessionKeys();
   if (!pinMatches(parsed.data.pin, keys.pin, keys.secret)) {

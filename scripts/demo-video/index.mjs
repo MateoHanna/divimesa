@@ -189,10 +189,8 @@ async function main() {
         await page.waitForFunction(() => window.__demoVideo?.ready === true, null, { timeout: 30000 });
         const clientFrame = await (await page.locator('iframe[title^="Página del cliente"]').elementHandle()).contentFrame();
         await clientFrame.locator('section[aria-label="Cuenta"]').waitFor({ timeout: 30000 });
-        if (view === "horizontal") {
-          const panelFrame = await (await page.locator('iframe[title="Panel del salonero"]').elementHandle()).contentFrame();
-          await panelFrame.getByRole("heading", { level: 1 }).waitFor({ timeout: 30000 });
-        }
+        const panelFrame = await (await page.locator('iframe[title="Panel del salonero"]').elementHandle()).contentFrame();
+        await panelFrame.getByRole("heading", { level: 1 }).waitFor({ timeout: 30000 });
         await sleep(800);
 
         const cdp = await context.newCDPSession(page);

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ClientApp } from "@/components/client/client-app";
 import { loadClientState, TOKEN_RE } from "@/lib/client/queries";
 import { getAppUrl } from "@/lib/app-url";
+import { BRAND } from "@/lib/brand";
 import { DbError } from "@/lib/panel/queries";
 import { getAdminClient } from "@/lib/supabase/server";
 
@@ -28,14 +29,16 @@ export default async function Page({ params, searchParams }: PageProps<"/m/[toke
     if (e instanceof DbError && e.message.includes("table_not_found")) notFound();
     throw e;
   }
+  // ?grabar=1 (video de demo): siempre divimesa.com, nunca localhost, y un margen bajo el notch.
+  const recording = (Array.isArray(sp.grabar) ? sp.grabar[0] : sp.grabar) === "1";
   let host: string | null = null;
   try {
-    host = new URL(getAppUrl()).host;
+    host = new URL(recording ? BRAND.site : getAppUrl()).host;
   } catch {
     host = null;
   }
   return (
     <ClientApp token={token} initial={initial} channel={tableId ? `table:${tableId}` : null}
-      flash={sp.rechazo === "1" ? "declined" : undefined} host={host} />
+      flash={sp.rechazo === "1" ? "declined" : undefined} host={host} recording={recording} />
   );
 }

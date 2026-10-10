@@ -106,3 +106,12 @@
 .animate-caption-in { animation: caption-in 0.35s ease-out both; }
 .animate-tap-ring { animation: tap-ring 0.8s ease-out both; }
 .animate-scan-line { animation: scan-line 1.6s ease-in-out infinite; }
+
+/* Modo grabación (video de demo): entrada y salida de escenas y movimiento lento de cámara. */
+@keyframes scene-in { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+@keyframes scene-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes text-drift { from { transform: scale(1); } to { transform: scale(1.06); } }
+.animate-scene-in { animation: scene-in 0.4s ease-out both; }
+.animate-scene-out { animation: scene-out 0.4s ease-in both; }
+.animate-text-drift { animation: text-drift 10s linear both; }
+.recording-held .animate-text-drift { animation-play-state: paused; }

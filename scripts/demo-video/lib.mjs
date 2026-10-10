@@ -3,15 +3,12 @@
 
 export const FPS = 30;
 
-/** Segundo en que empieza cada escena (el video dura 40 s si todo va a tiempo). */
-export const T = { intro: 0, cuenta: 3, paga: 10, panel: 20, resto: 27, cierre: 35, fin: 40 };
-
-export const CAPTIONS = {
-  cuenta: "Escanean el QR y ven la cuenta",
-  paga: "Cada quien paga lo suyo",
-  panel: "Usted lo ve al instante",
-  resto: "La mesa se libera más rápido",
-};
+/**
+ * Segundo en que empieza cada escena (el video dura 43 s si todo va a tiempo). Los textos de cada
+ * escena viven en components/demo/recording-stage.tsx; `cierre` es la frase final y `contacto`
+ * el logo con divimesa.com y el WhatsApp.
+ */
+export const T = { intro: 0, cuenta: 3, paga: 10, panel: 20, resto: 27, cierre: 37, contacto: 40, fin: 43 };
 
 export const DEFAULTS = { nombre: "Su Restaurante", color: "#D91E18" };
 

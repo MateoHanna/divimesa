@@ -31,7 +31,7 @@ export function PinForm() {
       setError(json.error ?? "No se pudo ingresar.");
       setPin("");
     } catch {
-      setError("Sin conexión. Intentá de nuevo.");
+      setError("Sin conexión. Intente de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -42,7 +42,7 @@ export function PinForm() {
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">Panel del salonero</CardTitle>
-          <CardDescription>Ingresá el PIN para continuar.</CardDescription>
+          <CardDescription>Ingrese el PIN para continuar.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={submit} className="flex flex-col gap-3">

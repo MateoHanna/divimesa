@@ -3,13 +3,13 @@ const ERRORS: Record<string, { status: number; message: string }> = {
   bill_not_found: { status: 404, message: "La cuenta ya no existe." },
   bill_not_open: { status: 409, message: "La cuenta ya no está abierta." },
   bill_not_paid: { status: 409, message: "La cuenta todavía no está pagada." },
-  split_active: { status: 409, message: "La cuenta está en partes iguales. Cancelá las partes iguales para cambiar los platos." },
+  split_active: { status: 409, message: "La cuenta está en partes iguales. Cancele las partes iguales para cambiar los platos." },
   no_split: { status: 409, message: "La cuenta no está dividida en partes iguales." },
   item_not_found: { status: 404, message: "Ese plato ya no está en la cuenta." },
   item_not_pending: { status: 409, message: "Ese plato ya fue pagado o anulado." },
-  item_reserved: { status: 409, message: "Un cliente está pagando ese plato desde su celular. Probá en un momento." },
-  logo_missing: { status: 400, message: "Elegí una imagen para el logo." },
-  logo_too_big: { status: 400, message: "El logo pesa más de 1 MB. Probá con una imagen más liviana." },
+  item_reserved: { status: 409, message: "Un cliente está pagando ese plato desde su celular. Pruebe en un momento." },
+  logo_missing: { status: 400, message: "Elija una imagen para el logo." },
+  logo_too_big: { status: 400, message: "El logo pesa más de 1 MB. Pruebe con una imagen más liviana." },
   logo_type: { status: 400, message: "El logo tiene que ser PNG, JPG o WebP." },
   not_split: { status: 409, message: "Ese plato no está dividido." },
   split_group_paid: { status: 409, message: "Ya se pagó una de las partes. No se puede deshacer la división." },
@@ -22,7 +22,7 @@ const ERRORS: Record<string, { status: number; message: string }> = {
   invalid_amount: { status: 400, message: "El monto no es válido." },
   amount_exceeds_balance: { status: 409, message: "El monto es mayor al saldo pendiente." },
   nothing_to_pay: { status: 409, message: "No hay nada pendiente de pago." },
-  no_items_selected: { status: 400, message: "Elegí al menos un plato." },
+  no_items_selected: { status: 400, message: "Elija al menos un plato." },
   duplicate_items: { status: 400, message: "Hay platos repetidos en la selección." },
   total_below_paid: { status: 409, message: "Con ese cambio el total quedaría por debajo de lo que ya se pagó." },
   table_not_found: { status: 404, message: "La mesa no existe." },
@@ -37,5 +37,5 @@ export function mapDbError(raw: string | undefined | null): MappedError {
   const code = (raw ?? "").trim();
   const known = ERRORS[code];
   if (known) return { code, ...known };
-  return { status: 500, code: "internal", message: "Ocurrió un error inesperado. Probá de nuevo." };
+  return { status: 500, code: "internal", message: "Ocurrió un error inesperado. Pruebe de nuevo." };
 }

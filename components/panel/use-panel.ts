@@ -144,7 +144,7 @@ export function usePanel(onUnauthorized: () => void) {
         if (okText) notify("info", okText);
         return true;
       } catch {
-        notify("error", "Sin conexión. Revisá el internet e intentá de nuevo.");
+        notify("error", "Sin conexión. Revise el internet e intente de nuevo.");
         return false;
       } finally {
         inflight.current -= 1;

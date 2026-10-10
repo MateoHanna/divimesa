@@ -1,7 +1,7 @@
 // El recorrido del video: toca los botones reales de la página del cliente (dentro del celular)
 // y le dice a la capa de /demo?grabar=1 qué texto y qué círculo mostrar.
 
-import { CAPTIONS, T } from "./lib.mjs";
+import { T } from "./lib.mjs";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -24,8 +24,9 @@ export async function runChoreography({ page, view, t0, log }) {
   const clientHandle = await page.locator('iframe[title^="Página del cliente"]').elementHandle();
   const client = await clientHandle.contentFrame();
   const clientUrl = client.url();
-  const panelHandle = view === "vertical" ? null : await page.locator('iframe[title="Panel del salonero"]').elementHandle();
-  const panel = panelHandle ? await panelHandle.contentFrame() : null;
+  const panelHandle = await page.locator('iframe[title="Panel del salonero"]').elementHandle();
+  const panel = await panelHandle.contentFrame();
+  const tall = view === "vertical";
 
   /** Centro del elemento en coordenadas de la página, tomando en cuenta posición y escala del iframe. */
   async function clientPoint(locator) {
@@ -78,77 +79,110 @@ export async function runChoreography({ page, view, t0, log }) {
     await btn(/Volver a la cuenta/).waitFor({ state: "visible", timeout: 30000 });
   }
 
-  /** Del comprobante de vuelta a la cuenta. `at` = hora mínima del clic. */
-  async function backToAccount({ pace = 1, at = 0 } = {}) {
+  /** Del comprobante de vuelta a la cuenta. Con el celular fuera de escena, así que sin círculo ni coordenadas. */
+  async function backToAccount({ at = 0 } = {}) {
     const wait = at - now();
     if (wait > 0) await sleep(wait * 1000);
-    await tap(btn(/Volver a la cuenta/), { pace, scroll: false });
+    await btn(/Volver a la cuenta/).evaluate((el) => el.click());
     await client.waitForURL(/\/m\//, { timeout: 30000 });
     await client.locator('section[aria-label="Cuenta"]').waitFor({ timeout: 20000 });
   }
 
+  /** Lleva la cámara del panel hacia la Mesa 4 y el aviso (punto medio, en coordenadas del panel). */
+  async function panelFocus(zoom) {
+    const pts = [];
+    for (const loc of [panel.getByRole("button", { name: /^Mesa 4,/ }), panel.locator("div.animate-notice-in").first()]) {
+      const p = await loc.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+      }, null, { timeout: 1500 }).catch(() => null);
+      if (p) pts.push(p);
+    }
+    if (!pts.length) return;
+    await call("panelCam", pts.reduce((a, p) => a + p.x, 0) / pts.length, pts.reduce((a, p) => a + p.y, 0) / pts.length, zoom);
+  }
+
   const scrollToTotals = () => client.locator('section[aria-label="Cuenta"] dl').evaluate((el) => el.scrollIntoView({ behavior: "smooth", block: "end" }));
 
-  // 0 a 3 s: tarjeta de inicio (ya está visible mientras cargan el celular y el panel).
-  await begin("tarjeta de inicio", T.intro);
+  const lines = client.locator('section[aria-label="Cuenta"] li button[aria-pressed]');
+  const zoomPhone = tall ? 1.05 : 1.06;
 
-  // 3 a 10 s: escanean el QR y ven la cuenta.
-  await begin("escanean el QR y ven la cuenta", T.cuenta);
-  await call("card", null);
-  await call("caption", CAPTIONS.cuenta);
+  // 0 a 3 s: fondo escarlata con el logo y la pregunta (ya está en pantalla mientras cargan los iframes).
+  await begin("inicio", T.intro);
+
+  // 3 a 10 s: "Escanean el QR." El celular entra inclinado y se endereza antes del primer toque.
+  await begin("escanean el QR", T.cuenta);
+  await call("scene", "cuenta");
   await call("scan", true);
   await sleep(1900);
   await call("scan", false);
-  await sleep(900);
-  await client.locator('section[aria-label="Cuenta"] dl').evaluate((el) => el.scrollIntoView({ behavior: "smooth", block: "end" }));
-  await sleep(2200);
+  await call("tilt", false);
+  await sleep(1000);
+  await scrollToTotals();
+  await sleep(2400);
   await client.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
 
-  // 10 a 20 s: elige 2 platos, propina del 10 % y Apple Pay.
+  // 10 a 20 s: "Cada quien paga lo suyo." Elige 2 platos, propina del 10 % y Apple Pay.
   await begin("cada quien paga lo suyo", T.paga);
-  await call("caption", CAPTIONS.paga);
+  await call("scene", "paga");
+  await call("phoneZoom", zoomPhone);
+  await sleep(600);
   await tap(btn(/Pagar mis platos/));
-  const lines = client.locator('section[aria-label="Cuenta"] li button[aria-pressed]');
-  await tap(lines.nth(0), { pace: 0.55 });
-  await tap(lines.nth(1), { pace: 0.55 });
-  await tap(client.getByRole("button", { name: "10 %", exact: true }), { pace: 0.55 });
-  await tap(client.getByRole("radio", { name: "Apple Pay" }), { pace: 0.55 });
-  await tap(payButton(), { pace: 0.55 });
-  // El clic final del checkout cae unos 1,5 s antes de la escena 4, así el aviso sale justo al empezar.
+  await tap(lines.nth(0), { pace: 0.45 });
+  await tap(lines.nth(1), { pace: 0.45 });
+  await tap(client.getByRole("button", { name: "10 %", exact: true }), { pace: 0.45 });
+  await tap(client.getByRole("radio", { name: "Apple Pay" }), { pace: 0.45 });
+  await tap(payButton(), { pace: 0.45 });
+  // El clic final del checkout cae unos 1,5 s antes de la escena siguiente, así el aviso sale al empezar.
   await payInCheckout({ pace: 0.8, at: T.panel - 1.5 });
+  await call("phoneZoom", 1);
 
-  // 20 a 27 s: el aviso en el panel y el saldo bajando (en el celular).
+  // 20 a 27 s: "Usted lo ve al instante." El panel real y la cámara acercándose a la Mesa 4 y al aviso.
   await begin("usted lo ve al instante", T.panel);
-  await call("caption", CAPTIONS.panel);
-  await backToAccount({ pace: 0.8, at: T.panel + 1.8 });
+  await call("scene", "panel");
+  await panel.locator("div.animate-notice-in").first().waitFor({ state: "visible", timeout: 9000 }).catch(() => log("  aviso: el panel no mostró el aviso del pago a tiempo"));
   await sleep(500);
+  await panelFocus(tall ? 1.2 : 1.45);
+  // Mientras tanto el celular (fuera de escena) vuelve a la cuenta, listo para la escena siguiente.
+  await backToAccount({ at: T.panel + 4 });
   await scrollToTotals();
 
-  // 27 a 35 s: dos personas pagan el resto en partes iguales y la mesa se pone verde.
-  await begin("dos personas pagan el resto", T.resto);
-  await call("caption", CAPTIONS.resto);
-  await tap(btn(/Partes iguales/), { pace: 0.5 });
-  await tap(btn(/Dividir en 2 partes/), { pace: 0.5 });
-  await tap(payButton(), { pace: 0.5 });
-  await payInCheckout({ pace: 0.5 });
+  // 27 a 37 s: "Partes iguales, en segundos." Primero el celular pagando, después el panel.
+  await begin("partes iguales", T.resto);
+  await call("scene", "resto");
+  await sleep(300);
+  await call("phoneZoom", zoomPhone);
+  await tap(btn(/Partes iguales/), { pace: 0.35 });
+  await tap(btn(/Dividir en 2 partes/), { pace: 0.35 });
+  await tap(payButton(), { pace: 0.35 });
+  await payInCheckout({ pace: 0.35 });
   // La segunda persona escanea el mismo QR desde otro celular: sesión nueva.
   await client.evaluate(() => { try { window.localStorage.removeItem("qr-session"); } catch { /* sin localStorage */ } });
   await client.goto(clientUrl);
   await client.locator('section[aria-label="Cuenta"]').waitFor({ timeout: 20000 });
-  await tap(btn(/Partes iguales/), { pace: 0.5 });
-  await tap(payButton(), { pace: 0.5 });
-  await payInCheckout({ pace: 0.5 });
-  // Que la mesa ya se vea verde (y con el aviso fijo) antes de pasar a la tarjeta final.
-  if (panel) {
-    await panel.getByText(/pagó completo/).first().waitFor({ state: "visible", timeout: 12000 }).catch(() => log("  aviso: el panel no mostró \"pagó completo\" a tiempo"));
-    await sleep(900);
-  }
+  await tap(btn(/Partes iguales/), { pace: 0.35 });
+  await tap(payButton(), { pace: 0.35 });
+  await payInCheckout({ pace: 0.35 });
+  await call("phoneZoom", 1);
+  // El panel: esperar a que la Mesa 4 esté verde con el aviso "pagó completo" y dejarlo quieto 3 s.
+  await call("scene", "restoPanel");
+  await panel.getByText(/pagó completo/).first().waitFor({ state: "visible", timeout: 15000 }).catch(() => log("  aviso: el panel no mostró \"pagó completo\" a tiempo"));
+  await panel.getByRole("button", { name: /^Mesa 4, Pagada/ }).waitFor({ state: "visible", timeout: 8000 }).catch(() => log("  aviso: la Mesa 4 no se vio verde a tiempo"));
+  await sleep(500);
+  await panelFocus(tall ? 1.2 : 1.45);
+  await sleep(1300);
+  await call("hold", true);
+  await sleep(3000);
+  await call("hold", false);
 
-  // 35 a 40 s: tarjeta final.
-  await begin("tarjeta final", T.cierre);
-  await call("caption", null);
-  await call("card", "outro");
-  const end = Math.max(now(), T.cierre) + (T.fin - T.cierre);
+  // 37 a 40 s: frase final. 40 a 43 s: logo, divimesa.com y WhatsApp.
+  await begin("sin app y sin equipo nuevo", T.cierre);
+  await call("scene", "cierre");
+  // La frase se queda sus 3 s completos aunque se haya llegado tarde.
+  await sleep(Math.max(0, T.contacto - T.cierre) * 1000);
+  log(`  ${now().toFixed(1).padStart(5)} s  logo y contacto`);
+  await call("scene", "contacto");
+  const end = now() + (T.fin - T.contacto);
   await sleep((end - now()) * 1000);
   log(`  ${now().toFixed(1).padStart(5)} s  fin`);
   return t0 + end;

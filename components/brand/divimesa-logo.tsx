@@ -8,11 +8,11 @@ const LOGOS = {
 } as const;
 
 /** Logo de Divimesa, tal cual vienen los archivos de public/brand. */
-export function DivimesaLogo({ variant = "horizontal", dark, className }: { variant?: keyof typeof LOGOS; dark?: boolean; className?: string }) {
+export function DivimesaLogo({ variant = "horizontal", dark, className, style }: { variant?: keyof typeof LOGOS; dark?: boolean; className?: string; style?: React.CSSProperties }) {
   const l = LOGOS[variant];
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={dark ? l.dark : l.light} alt="Divimesa" width={l.width} height={l.height} decoding="async" className={cn("h-6 w-auto", className)} />
+    <img src={dark ? l.dark : l.light} alt="Divimesa" width={l.width} height={l.height} decoding="async" className={cn("h-6 w-auto", className)} style={style} />
   );
 }
 

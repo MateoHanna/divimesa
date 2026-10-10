@@ -41,7 +41,7 @@ export function panelRoute<B = undefined>(
   return async (req: Request, ctx?: { params: Promise<Params> }): Promise<Response> => {
     try {
       if (req.method !== "GET" && !sameOrigin(req)) return fail(403, "Origen no permitido.", "forbidden");
-      if (!(await hasPanelSession())) return fail(401, "Ingresá el PIN para continuar.", "unauthorized");
+      if (!(await hasPanelSession())) return fail(401, "Ingrese el PIN para continuar.", "unauthorized");
 
       let body = undefined as B;
       if (opts.body) {
@@ -60,7 +60,7 @@ export function panelRoute<B = undefined>(
         return fail(m.status, m.message, m.code);
       }
       console.error("[panel] error inesperado:", e);
-      return fail(500, "Ocurrió un error inesperado. Probá de nuevo.", "internal");
+      return fail(500, "Ocurrió un error inesperado. Pruebe de nuevo.", "internal");
     }
   };
 }

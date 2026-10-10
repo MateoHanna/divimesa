@@ -27,7 +27,7 @@ export function AddItemsDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setQty({}); setAdded({}); } }}>
-      <DialogContent title="Agregar platos" description="Elegí la cantidad y tocá Agregar. Cada unidad queda como una línea.">
+      <DialogContent title="Agregar platos" description="Elija la cantidad y toque Agregar. Cada unidad queda como una línea.">
         <div className="flex flex-col gap-5">
           {categories.map(([cat, list]) => (
             <section key={cat}>

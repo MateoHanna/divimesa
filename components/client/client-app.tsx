@@ -46,7 +46,7 @@ function cleanInvoice(i: InvoiceInput): InvoiceInput | undefined {
 
 const DECLINED = "El pago fue rechazado y no se cobró nada. Puede intentarlo de nuevo o elegir otro método.";
 
-export function ClientApp({ token, initial, channel, flash, host }: { token: string; initial: ClientState; channel: string | null; flash?: "declined"; host: string | null }) {
+export function ClientApp({ token, initial, channel, flash, host, recording = false }: { token: string; initial: ClientState; channel: string | null; flash?: "declined"; host: string | null; recording?: boolean }) {
   const [mode, setMode] = useState<PayMode | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [tipUi, setTipUi] = useState<TipUi>("none");
@@ -224,7 +224,9 @@ export function ClientApp({ token, initial, channel, flash, host }: { token: str
   const disabledReason = !synced ? "Actualizando la cuenta…" : q.blocked ?? (invoiceError ? "Revise los datos de factura." : null);
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-4 px-4 pb-10" style={brandVars(state.restaurant.primaryColor) as React.CSSProperties}>
+    <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-4 px-4 pb-10" style={{ ...brandVars(state.restaurant.primaryColor), ...(recording ? { paddingTop: 40 } : {}) } as React.CSSProperties}>
+      {/* Video de demo: franja fija bajo el notch del marco, para que nunca tape el contenido. */}
+      {recording ? <div aria-hidden className="fixed inset-x-0 top-0 z-30 h-10 bg-primary" /> : null}
       <header className="-mx-4 bg-primary px-4 pb-4 pt-5 text-primary-foreground">
         <div className="flex items-center gap-3">
           <BrandMark name={state.restaurant.name} logoUrl={state.restaurant.logoUrl} className="size-14 rounded-2xl" />
@@ -345,7 +347,7 @@ export function ClientApp({ token, initial, channel, flash, host }: { token: str
 
           {mode === "equal" ? <EqualSplit bill={bill} busy={busy} onStart={startEqual} /> : null}
 
-          {mode ? (
+          {mode && !(mode === "equal" && !bill.split) ? (
             <PaySummary quote={q} tipUi={tipUi} onTipUi={setTipUi} otherTip={otherTip} onOtherTip={setOtherTip}
               method={method} onMethod={setMethod} invoice={invoice} onInvoice={setInvoice} invoiceError={invoiceError}
               disabledReason={disabledReason} submitting={submitting} onPay={pay} />

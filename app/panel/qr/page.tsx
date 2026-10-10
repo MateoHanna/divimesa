@@ -35,7 +35,7 @@ export default async function AllQrPage() {
             <div className="min-w-0">
               <p className="text-sm font-medium text-muted-foreground print:text-neutral-700">{restaurant}</p>
               <p className="text-5xl font-extrabold">Mesa {t.number}</p>
-              <p className="mt-1 text-sm">Escaneá para ver y pagar tu cuenta</p>
+              <p className="mt-1 text-sm">Escanee para ver y pagar su cuenta</p>
             </div>
           </li>
         ))}
