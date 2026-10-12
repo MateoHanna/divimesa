@@ -6,6 +6,7 @@ import { AnimatedMoney } from "@/components/ui/animated-number";
 import type { PanelTable, TableStatus } from "@/lib/panel/types";
 import { cn } from "@/lib/utils";
 
+import { OpenFor } from "./open-for";
 import { STATUS_LABEL } from "./status";
 
 // Cada estado se distingue por color, forma del borde, ícono y texto (nunca solo por el color).
@@ -82,7 +83,12 @@ export function TableGrid({
                       <SmartphoneIcon className="size-3.5 animate-pulse" aria-hidden /> SINPE por confirmar
                     </span>
                   ) : null}
-                  <span className="text-sm font-bold tracking-wide uppercase">{STATUS_LABEL[t.status]}</span>
+                  {t.status === "open" && t.bill ? (
+                    <OpenFor openedAt={t.bill.openedAt} className="text-sm font-bold" />
+                  ) : (
+                    <span className="text-sm font-bold tracking-wide uppercase">{STATUS_LABEL[t.status]}</span>
+                  )}
+                  {t.status === "partial" && t.bill ? <OpenFor openedAt={t.bill.openedAt} className="text-xs font-medium" /> : null}
                   {totals ? (
                     <span className="text-sm">
                       {t.status === "paid" ? <AnimatedMoney value={totals.total} /> : <>Saldo <AnimatedMoney value={totals.balance} /></>}

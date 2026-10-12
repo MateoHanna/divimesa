@@ -20,6 +20,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ConfirmDialog } from "./confirm-dialog";
 import { InvoiceInfo } from "./invoice-info";
 import { PaymentDialog } from "./payment-dialog";
+import { OpenFor } from "./open-for";
 import { PendingSinpe } from "./pending-sinpe";
 import { parseColones, TotalDialog } from "./total-dialog";
 import { PriceDialog } from "./price-dialog";
@@ -54,6 +55,8 @@ export function TableDetail({
           <Button variant="ghost" size="icon" aria-label="Más opciones de la mesa" onClick={() => setOptions(true)}><MoreVerticalIcon /></Button>
         ) : null}
       </header>
+
+      {bill?.status === "open" ? <OpenFor openedAt={bill.openedAt} className="-mt-2 text-sm text-muted-foreground" /> : null}
 
       {!bill && billMode === "total" ? (
         <form className="flex flex-col gap-3 rounded-2xl border p-4" onSubmit={(e) => {
