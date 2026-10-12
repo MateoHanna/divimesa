@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowLeftIcon, MinusIcon, MoreVerticalIcon, PencilIcon, QrCodeIcon } from "lucide-react";
+import { ArrowLeftIcon, CheckIcon, MinusIcon, MoreVerticalIcon, PencilIcon, QrCodeIcon } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 
@@ -86,6 +86,12 @@ export function TableDetail({
               <p>
                 <strong>Partes iguales:</strong> {bill.split.paidParts} de {bill.split.parts} pagadas, {formatCRC(bill.split.share)} cada una.
               </p>
+              <div className="flex items-center gap-3" aria-hidden>
+                <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-sky-200">
+                  <span className="block h-full rounded-full bg-sky-600 transition-[width] duration-300" style={{ width: `${Math.min(100, Math.round((bill.split.paidParts / bill.split.parts) * 100))}%` }} />
+                </span>
+                <span className="text-xs font-bold tabular-nums">{bill.split.paidParts}/{bill.split.parts}</span>
+              </div>
               {bill.status === "open" ? (
                 <Button size="sm" variant="outline" onClick={() => setConfirm("split")}>Cancelar partes iguales</Button>
               ) : null}
@@ -175,9 +181,12 @@ export function TableDetail({
             ) : (
               <ul className="flex flex-col divide-y rounded-xl border">
                 {bill.payments.map((p) => (
-                  <li key={p.id} className="flex items-center justify-between gap-2 p-3 text-sm">
+                  <li key={p.id} className="animate-notice-in flex items-center justify-between gap-2 p-3 text-sm">
                     <div>
-                      <p className="font-medium">{METHOD_LABEL[p.method] ?? p.method} · {KIND_LABEL[p.kind] ?? p.kind}</p>
+                      <p className="flex items-center gap-1.5 font-medium">
+                        <CheckIcon className="size-4 shrink-0 text-emerald-600" aria-label="Pagado" />
+                        {METHOD_LABEL[p.method] ?? p.method} · {KIND_LABEL[p.kind] ?? p.kind}
+                      </p>
                       {p.items.length > 0 ? (
                         <p>{p.items.map((i) => `${i.count > 1 ? `${i.count} × ` : ""}${i.name}`).join(", ")}</p>
                       ) : null}
