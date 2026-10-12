@@ -105,7 +105,7 @@ export default function Home() {
               Piloto gratis de 2 semanas · Sin instalación · Sin plazo mínimo
             </p>
             <p className="order-3 -mt-3 max-w-[46ch] text-xs leading-snug text-[#1C1C1E]/60 text-balance sm:self-center lg:order-none lg:-mt-4 lg:self-start">
-              En el piloto, los pagos son por SINPE Móvil. Tarjeta y Apple Pay, próximamente.
+              En el piloto, los pagos son por SINPE Móvil. Tarjeta, Apple Pay y Google Pay, próximamente.
             </p>
           </div>
           <DemoVideo className="order-2 lg:order-none" />
