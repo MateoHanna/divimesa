@@ -1,12 +1,13 @@
 // Las 4 tomas del video. Cada una se graba en tiempo real con la app funcionando de verdad, y `at(t)` espera
 // al segundo t de la toma. Los tiempos son los del guion (0-9 s, 9-17 s, 17-27 s y 27-30 s del video final).
 
-import { liberarMesa, marcarPagada, revelarPago } from "./fixture.mjs";
+import { liberarMesa, marcarPagadaQR, revelarPago } from "./fixture.mjs";
 
 export const DURACION = { a: 9, b: 8, c: 10, d: 3 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export const METODOS = ["sinpe", "apple_pay", "sinpe", "card", "sinpe", "apple_pay"];
+// El primero es el SINPE «por confirmar» que el salonero recibe; los otros cinco entran como líneas de la lista de pagos.
+export const METODOS = ["sinpe", "apple_pay", "sinpe", "card", "apple_pay", "card"];
 export const TEXTO = {
   llenas: "Viernes, 9 p.m.\nTodas las mesas llenas.",
   mesa4: "La mesa 4 quiere\npagar por separado.",
@@ -35,10 +36,10 @@ export function entorno(page, view, size, log) {
       log(`    ${now().toFixed(2).padStart(5)} s  ${nombre ?? ""}${late > 0.15 ? `  (${late.toFixed(2)} s tarde)` : ""}`);
     },
     /** Cámara: encuadra el rectángulo (en coordenadas de la página) con el zoom que quepa, centrado sobre el texto. */
-    async focus(rect, { k, margin = 0.9, ms = 0 } = {}) {
+    async focus(rect, { k, margin = 0.9, ms = 0, force = false } = {}) {
       const availH = size.h - BAND;
       const fit = Math.min((size.w * margin) / rect.w, (availH * margin) / rect.h);
-      const z = Math.max(1, Math.min(k ?? fit, fit));
+      const z = force && k ? k : Math.max(1, Math.min(k ?? fit, fit));
       const px = rect.x + rect.w / 2, py = rect.y + rect.h / 2;
       const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
       const tx = clamp(size.w / 2 - z * px, size.w - z * size.w, 0) + z * px;
@@ -137,42 +138,82 @@ export async function tomaB(E) {
   await at(8.0, "fin");
 }
 
-/** Toma C (17 a 27 s): seis avisos, el salonero toca «Recibido», la mesa 4 queda libre y otras tres también. */
+// Solo para la grabación: el panel muestra la mesa 4 sin avisos flotantes y con la lista de pagos a la vista.
+const CSS_C = `
+  div[aria-live="polite"] { display: none !important; }
+  aside .border-sky-300 button { display: none !important; }
+  aside div.justify-between.rounded-xl.border.p-4,
+  aside p.-mt-2,
+  aside dl,
+  aside div.grid.grid-cols-2.gap-2:has(> span),
+  aside a[href*="/panel/qr"] { display: none !important; }
+  aside section li { padding: 7px 12px !important; }
+  aside section li > div > p:nth-child(n+2) { display: none !important; }
+  aside section li > div > p:first-child { font-size: 15px; }
+  aside section li svg { display: none !important; }
+  aside section li > div > p:first-child::before { content: "✓"; color: #059669; font-weight: 800; margin-right: 8px; }
+`;
+
+/** Antes de grabar la toma C: se abre el detalle de la mesa 4 y se esconde lo que no cuenta la historia. */
+export async function prepararC(page, tall = false) {
+  const panel = page.frames().find((f) => /\/panel/.test(f.url()));
+  // En vertical el aviso de confirmación sube para que el texto del video no lo tape.
+  await panel.addStyleTag({ content: CSS_C + (tall ? `[role="dialog"] { bottom: 250px !important; left: 16px !important; right: 16px !important; width: auto !important; border-radius: 16px !important; }` : "") });
+  await panel.getByRole("button", { name: /^Mesa 4,/ }).click();
+  await panel.getByText("SINPE por confirmar").first().waitFor({ state: "hidden", timeout: 100 }).catch(() => undefined);
+}
+
+/** Toma C (17 a 27 s): un SINPE por confirmar, cinco pagos más en la lista, mesa 4 libre y otras tres también. */
 export async function tomaC(E, { sb, ctx, pagos, otras }) {
-  const { call, at } = E;
+  const { call, at, tall } = E;
   const panel = E.frame(/\/panel/);
   const poke = () => panel.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
-  const LAT = 0.2; // lo que tarda el aviso en llegar desde la base de datos hasta la pantalla
+  const LAT = 0.2; // lo que tarda el cambio en llegar desde la base de datos hasta la pantalla
 
-  await at(0, "panel");
+  await at(0, "detalle mesa 4");
   await call("show", "panel");
-  await call("drift", 1, 1.03, 10);
-  for (let i = 0; i < 6; i++) {
-    await at(0.3 + 0.35 * i - LAT, `aviso ${i + 1} (${pagos[i].metodo})`);
-    await revelarPago(sb, pagos[i]);
-    await poke();
-    if (i === 3) await call("cap", TEXTO.libre);
+  let gridRect = null;
+  if (!tall) {
+    const b = await panel.locator("aside").first().boundingBox();
+    if (b) {
+      const k = 1.04, cx = b.x + b.width / 2;
+      await call("cam", cx, 0, k, cx - (k - 1) * b.width / 2, 0, 0);
+    }
+    const bx = [];
+    for (let n = 1; n <= 8; n++) bx.push(await panel.getByRole("button", { name: new RegExp(`^Mesa ${n},`) }).boundingBox());
+    gridRect = union(bx);
   }
-  // El salonero toca «Recibido» en el primero y los otros dos siguen enseguida (cámara rápida).
-  await at(3.3, "Recibido 1");
-  const recibido = () => panel.getByRole("button", { name: "Recibido" });
-  await E.tap(recibido().first(), { scroll: false });
-  await at(3.65, "Recibido 2");
-  await E.tap(recibido().first(), { scroll: false });
-  await at(3.95, "Recibido 3");
-  await E.tap(recibido().first(), { scroll: false });
-  await panel.getByRole("button", { name: "Liberar mesa" }).first().waitFor({ state: "visible", timeout: 8000 });
-  await at(4.8, "Liberar mesa");
-  await E.tap(panel.getByRole("button", { name: "Liberar mesa" }).first(), { scroll: false });
-  // Las otras tres mesas ya habían pagado por su cuenta: quedan "Pagada" justo antes del corte.
-  await at(5.3, "otras mesas pagadas");
-  const cuentas = {};
-  for (const n of otras) cuentas[n] = await marcarPagada(sb, ctx, n);
+  await call("drift", 1, 1.03, 6);
+  await at(0.4 - LAT, "llega un SINPE por confirmar");
+  await revelarPago(sb, pagos[0]);
   await poke();
-  await at(6.0, "escena 5");
+  await at(1.3, "Recibido");
+  await call("cap", TEXTO.libre);
+  await E.tap(panel.getByRole("button", { name: "Recibido" }).first(), { scroll: false });
+  for (let i = 1; i < 6; i++) {
+    await at(1.75 + 0.35 * (i - 1) - LAT, `línea ${i + 1} (${pagos[i].metodo})`);
+    await revelarPago(sb, pagos[i], { auto: true });
+    await poke();
+  }
+  await panel.getByRole("button", { name: "Liberar mesa" }).first().waitFor({ state: "visible", timeout: 8000 });
+  await at(4.0, "Liberar mesa");
+  await E.tap(panel.getByRole("button", { name: "Liberar mesa" }).first(), { scroll: false });
+  await at(4.5, "confirmar");
+  await E.tap(panel.getByRole("dialog").getByRole("button", { name: "Liberar mesa" }), { scroll: false });
+  await at(5.4, "mesa 4 libre");
+  if (tall) {
+    const back = panel.getByRole("button", { name: "Volver a las mesas" });
+    if (await back.count()) await E.tap(back.first(), { scroll: false });
+  }
   await call("cap", TEXTO.atiende);
+  if (gridRect) await E.focus(gridRect, { k: 1.45, ms: 250 });
+  await at(6.0, "escena 5");
+  // Las otras tres mesas pagaron por su cuenta desde el QR y se liberan sin avisos.
+  const cuentas = {};
+  for (const n of otras) cuentas[n] = await marcarPagadaQR(sb, ctx, n, n === 6 ? "apple_pay" : "card");
+  await poke();
   const free = [1, 6, 3];
-  const times = [6.4, 7.2, 8.4];
+  const times = [6.9, 7.8, 8.7];
   for (const [i, n] of free.entries()) {
     await at(times[i] - LAT, `liberar mesa ${n}`);
     await liberarMesa(sb, cuentas[n]);

@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import { chromium, request as pwRequest } from "playwright-core";
 
 import { FPS, concatList, planFrames } from "../demo-video/lib.mjs";
-import { METODOS, DURACION, entorno, tomaA, tomaB, tomaC, tomaD } from "./takes.mjs";
+import { METODOS, DURACION, entorno, tomaA, tomaB, tomaC, tomaD, prepararC } from "./takes.mjs";
 import { adminClient, dividirMesa4, prepararMesas, prepararPagos, restaurarDemo } from "./fixture.mjs";
 import { SIZES, stageHtml } from "./stage.mjs";
 
@@ -177,6 +177,7 @@ async function main() {
             const mf = page.frames().find((f) => /\/m\//.test(f.url()));
             await mf.locator('section[aria-label="Cuenta"]').waitFor({ timeout: 30000 });
           }
+          if (name === "c") await prepararC(page, view === "vertical");
           await sleep(500);
           const cdp = await context.newCDPSession(page);
           cdp.on("Page.screencastFrame", (ev) => {
