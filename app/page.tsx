@@ -111,7 +111,7 @@ export default function Home() {
         <section aria-labelledby="viernes" className="flex flex-col gap-4">
           <h2 id="viernes" className="text-3xl font-extrabold tracking-tight">Viernes en la noche</h2>
           <p className="max-w-[56ch] text-xl leading-relaxed text-[#1C1C1E]/80">
-            La mesa de 8 pide la cuenta, cada uno quiere pagar lo suyo, el salonero pasa el datáfono 8 veces y en la puerta hay gente esperando esa mesa.
+            La mesa de 6 pide la cuenta, cada uno quiere pagar lo suyo, el salonero pasa el datáfono 6 veces y en la puerta hay gente esperando esa mesa.
           </p>
         </section>
 
@@ -155,6 +155,12 @@ export default function Home() {
             <li>Sin plazo mínimo</li>
           </ul>
           <p className="text-lg leading-relaxed text-[#1C1C1E]/75">Si no le sirve, lo quitamos.</p>
+          <div>
+            <Link href="/demo/mesa" prefetch={false}
+              className="inline-flex h-14 items-center justify-center whitespace-nowrap rounded-2xl bg-[#D91E18] px-6 text-lg font-semibold text-white transition-colors hover:bg-[#BF1A14] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D91E18]">
+              Pruébelo usted mismo
+            </Link>
+          </div>
         </section>
 
         <section aria-labelledby="faq" className="flex flex-col gap-6">
