@@ -89,7 +89,7 @@ export default function Home() {
               Cada quien paga su parte desde la mesa, sin esperar el datáfono
             </h1>
             <p className="order-1 mx-auto max-w-[38ch] text-lg leading-relaxed text-[#1C1C1E]/75 text-balance lg:order-none lg:mx-0 lg:max-w-[40ch]">
-              Las mesas se pagan desde el celular: cada quien paga su parte con SINPE, tarjeta o Apple Pay, y usted lo ve al instante.
+              Las mesas se pagan desde el celular: cada quien paga su parte con SINPE, tarjeta, Apple Pay o Google Pay, y usted lo ve al instante.
             </p>
             <div className="flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row order-3 sm:self-center lg:order-none lg:self-start">
               <Link href="/demo/mesa" prefetch={false}
