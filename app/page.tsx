@@ -88,8 +88,8 @@ export default function Home() {
             <h1 className="order-1 mx-auto max-w-[20ch] lg:order-none lg:mx-0 text-[2.4rem] leading-[1.04] font-extrabold tracking-[-0.03em] text-balance sm:text-6xl lg:text-[2.9rem]">
               Cada quien paga su parte desde la mesa, sin esperar el datáfono
             </h1>
-            <p className="order-1 mx-auto max-w-[34ch] text-lg leading-relaxed text-[#1C1C1E]/75 text-balance lg:order-none lg:mx-0 lg:max-w-[36ch]">
-              Las mesas se pagan desde el celular: cada quien paga su parte por SINPE y usted lo ve al instante.
+            <p className="order-1 mx-auto max-w-[38ch] text-lg leading-relaxed text-[#1C1C1E]/75 text-balance lg:order-none lg:mx-0 lg:max-w-[40ch]">
+              Las mesas se pagan desde el celular: cada quien paga su parte con SINPE, tarjeta o Apple Pay, y usted lo ve al instante.
             </p>
             <div className="flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row order-3 sm:self-center lg:order-none lg:self-start">
               <Link href="/demo/mesa" prefetch={false}
@@ -103,6 +103,9 @@ export default function Home() {
             </div>
             <p className="order-3 text-sm font-semibold text-[#1C1C1E]/70 sm:self-center lg:order-none lg:self-start">
               Piloto gratis de 2 semanas · Sin instalación · Sin plazo mínimo
+            </p>
+            <p className="order-3 -mt-3 max-w-[46ch] text-xs leading-snug text-[#1C1C1E]/60 text-balance sm:self-center lg:order-none lg:-mt-4 lg:self-start">
+              En el piloto, los pagos son por SINPE Móvil. Tarjeta y Apple Pay, próximamente.
             </p>
           </div>
           <DemoVideo className="order-2 lg:order-none" />
