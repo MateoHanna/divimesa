@@ -12,46 +12,55 @@ const VIDEOS = {
 } as const;
 
 /**
- * El video vertical en celular y el horizontal en computadora. Solo se descarga uno: mientras carga
- * la página se ve el póster correcto (con <picture>, sin JavaScript) y al montar se pone el video.
+ * El video vertical en celular y el horizontal en computadora. El póster es una imagen normal (sin JavaScript),
+ * así la página pinta rápido. Cuando la página ya cargó y el navegador está libre se monta el video encima y,
+ * al empezar a reproducirse, el póster se oculta. Solo se descarga un video.
  * Si el navegador no deja reproducir solo, aparece un botón de play grande en el centro.
  */
 export function DemoVideo({ className }: { className?: string }) {
   const [kind, setKind] = useState<"wide" | "tall" | null>(null);
+  const [playing, setPlaying] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
   const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
-    const update = () => setKind(mq.matches ? "tall" : "wide");
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
+    const update = () => { setPlaying(false); setKind(mq.matches ? "tall" : "wide"); };
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const start = () => { timer = setTimeout(update, 1200); };
+    if (document.readyState === "complete") start();
+    else window.addEventListener("load", start, { once: true });
+    const onChange = () => { if (kind) update(); };
+    mq.addEventListener("change", onChange);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("load", start);
+      mq.removeEventListener("change", onChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Intenta reproducir solo; si el navegador lo impide, se muestra el botón.
   useEffect(() => {
     const v = ref.current;
     if (!kind || !v) return;
-    setNeedsTap(false);
     v.play().catch(() => setNeedsTap(true));
   }, [kind]);
 
   const start = () => { void ref.current?.play().then(() => setNeedsTap(false)).catch(() => {}); };
 
   return (
-    <div className={cn("relative mx-auto w-full max-w-[min(100%,calc(78dvh*9/16))] overflow-hidden rounded-3xl bg-[#F6F3EF] shadow-[0_30px_60px_-30px_rgba(28,28,30,0.55)] md:max-w-4xl lg:max-w-none", className)}
-      style={{ aspectRatio: kind === "wide" ? VIDEOS.wide.ratio : undefined }}>
+    <div className={cn("relative mx-auto aspect-[9/16] w-full max-w-[min(100%,calc(78dvh*9/16))] overflow-hidden rounded-3xl bg-[#F6F3EF] shadow-[0_30px_60px_-30px_rgba(28,28,30,0.55)] md:aspect-video md:max-w-4xl lg:max-w-none", className)}>
+      <picture>
+        <source media="(max-width: 767px)" srcSet={VIDEOS.tall.poster} />
+        <img src={VIDEOS.wide.poster} alt="Divimesa: la cuenta de la mesa en el celular" fetchPriority="high" decoding="async"
+          className={cn("absolute inset-0 size-full object-cover", playing && "invisible")} />
+      </picture>
       {kind ? (
-        <video ref={ref} key={kind} className="block size-full object-cover" src={VIDEOS[kind].src} poster={VIDEOS[kind].poster}
+        <video ref={ref} key={kind} className="absolute inset-0 block size-full object-cover" src={VIDEOS[kind].src} poster={VIDEOS[kind].poster}
           autoPlay muted loop playsInline controls preload="auto" aria-label="Video de Divimesa: cómo paga una mesa"
-          onPlay={() => setNeedsTap(false)} />
-      ) : (
-        <picture>
-          <source media="(max-width: 767px)" srcSet={VIDEOS.tall.poster} />
-          <img src={VIDEOS.wide.poster} alt="Divimesa: la cuenta de la mesa en el celular" className="block w-full" />
-        </picture>
-      )}
+          onPlaying={() => { setPlaying(true); setNeedsTap(false); }} />
+      ) : null}
       {needsTap ? (
         <button type="button" onClick={start} aria-label="Reproducir el video"
           className="absolute inset-0 flex items-center justify-center bg-black/10 focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-[#D91E18]">

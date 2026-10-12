@@ -6,32 +6,62 @@ import { DemoVideo } from "@/components/demo/demo-video";
 import { BRAND } from "@/lib/brand";
 import { computeTotals, formatCRC } from "@/lib/money";
 
-const TITLE = "Pago y división de la cuenta por QR en la mesa";
-const DESCRIPTION = "Cada quien paga su parte desde el celular y el salonero lo ve al instante. Piloto gratis de 2 semanas para 5 restaurantes fundadores.";
+const TITLE = "Divimesa | Pago con QR en la mesa para restaurantes en Costa Rica";
+const DESCRIPTION = "Pago con QR en la mesa: cada cliente divide la cuenta y paga su parte por SINPE Móvil desde el celular. Piloto gratis para restaurantes en Costa Rica.";
 const POSTER = "/video/demo-poster.jpg";
 
 export const metadata: Metadata = {
-  title: { absolute: `Divimesa: ${TITLE.charAt(0).toLowerCase()}${TITLE.slice(1)}` },
+  title: { absolute: TITLE },
   description: DESCRIPTION,
-  alternates: { canonical: "/" },
+  alternates: { canonical: BRAND.site },
   openGraph: {
-    type: "website", locale: "es_CR", siteName: "Divimesa", url: "/",
+    type: "website", locale: "es_CR", siteName: "Divimesa", url: BRAND.site,
     title: TITLE, description: DESCRIPTION,
     images: [{ url: POSTER, width: 1280, height: 720, alt: "Divimesa: ¿La mesa quiere pagar por separado?" }],
   },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: [POSTER] },
 };
 
-const FOR_RESTAURANT = [
-  { title: "El datáfono sigue funcionando igual", text: "Quien prefiera pagar con la tarjeta física o en efectivo lo sigue haciendo. El salonero registra ese pago en el panel y la cuenta se actualiza." },
-  { title: "El dinero cae directo a su cuenta", text: "Los pagos de los clientes se depositan en la cuenta del restaurante." },
-  { title: "No hay que comprar equipo", text: "Funciona con el celular de cada cliente y con un celular o una tablet para el salonero." },
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${BRAND.site}/#organizacion`,
+      name: "Divimesa",
+      url: BRAND.site,
+      logo: `${BRAND.site}/brand/og-divimesa.png`,
+      email: BRAND.email,
+      sameAs: [BRAND.instagram],
+      areaServed: { "@type": "Country", name: "Costa Rica" },
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": `${BRAND.site}/#aplicacion`,
+      name: "Divimesa",
+      url: BRAND.site,
+      description: DESCRIPTION,
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      inLanguage: "es-CR",
+      publisher: { "@id": `${BRAND.site}/#organizacion` },
+      offers: { "@type": "Offer", price: "0", priceCurrency: "CRC", description: "Piloto gratis de 2 semanas, sin instalación y sin plazo mínimo" },
+    },
+  ],
+};
+
+const GAINS = [
+  { title: "La mesa se libera antes", text: "Nadie espera el datáfono. Cada quien paga su parte desde el celular y la mesa se desocupa apenas termina." },
+  { title: "Su salonero atiende en vez de cobrar", text: "En lugar de pasar el datáfono mesa por mesa, solo escribe el total y ve los pagos llegar al instante en su panel." },
+  { title: "Su caja y su datáfono siguen igual", text: "Quien prefiera pagar con la tarjeta física o en efectivo lo hace como siempre y el salonero lo registra en el panel. El dinero de los pagos por QR va directo a la cuenta del restaurante." },
 ];
 
 const FAQ = [
   { q: "¿Tengo que cambiar mi sistema de caja?", a: "No. Su caja y su datáfono siguen igual. El salonero escribe el total de la cuenta en Divimesa, unos segundos por mesa, y cuando la mesa termina de pagar la cierra en su caja como siempre." },
   { q: "¿Quién hace la factura electrónica?", a: "Su sistema, como hoy. Si el cliente pide factura, sus datos le llegan al salonero junto con el pago." },
   { q: "¿A dónde llega el dinero?", a: "Directo a la cuenta del restaurante. Divimesa nunca recibe ni guarda el dinero de sus clientes." },
+  { q: "¿Mis saloneros tienen que aprender algo complicado?", a: "No. Solo escriben el total de la cuenta y tocan «Recibido» cuando llega un pago. La capacitación toma 15 minutos." },
+  { q: "¿Y si un cliente no quiere usar el QR?", a: "Paga como siempre y el salonero lo registra en el panel. La cuenta de la mesa se actualiza igual." },
   { q: "¿Cuánto cuesta?", a: "El piloto de 2 semanas es gratis. Después es una mensualidad fija por local. Divimesa no cobra comisión por cada pago." },
 ];
 
@@ -44,9 +74,10 @@ const STEPS: { title: string; text: string; note?: string }[] = [
 export default function Home() {
   return (
     <div className="flex min-h-dvh flex-col bg-white text-[#1C1C1E]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD).replace(/</g, "\\u003c") }} />
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
         <DivimesaLogo variant="wordmark" className="h-9" />
-        <Link href="/panel" className="inline-flex min-h-10 items-center rounded-xl border border-[#1C1C1E]/20 px-4 text-sm font-semibold hover:bg-[#1C1C1E]/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D91E18]">
+        <Link href="/panel" prefetch={false} className="inline-flex min-h-10 items-center rounded-xl border border-[#1C1C1E]/20 px-4 text-sm font-semibold hover:bg-[#1C1C1E]/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D91E18]">
           Ingresar
         </Link>
       </header>
@@ -57,8 +88,11 @@ export default function Home() {
             <h1 className="order-1 mx-auto max-w-[20ch] lg:order-none lg:mx-0 text-[2.4rem] leading-[1.04] font-extrabold tracking-[-0.03em] text-balance sm:text-6xl lg:text-[2.9rem]">
               Cada quien paga su parte desde la mesa, sin esperar el datáfono
             </h1>
+            <p className="order-1 mx-auto max-w-[34ch] text-lg leading-relaxed text-[#1C1C1E]/75 text-balance lg:order-none lg:mx-0 lg:max-w-[36ch]">
+              Las mesas se pagan desde el celular: cada quien paga su parte por SINPE y usted lo ve al instante.
+            </p>
             <div className="flex w-full flex-col items-stretch justify-center gap-3 sm:w-auto sm:flex-row order-3 sm:self-center lg:order-none lg:self-start">
-              <Link href="/demo/mesa"
+              <Link href="/demo/mesa" prefetch={false}
                 className="inline-flex h-14 items-center justify-center whitespace-nowrap lg:h-12 lg:px-5 lg:text-base rounded-2xl bg-[#D91E18] px-6 text-lg font-semibold text-white transition-colors hover:bg-[#BF1A14] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D91E18]">
                 Pruébelo usted mismo
               </Link>
@@ -67,12 +101,18 @@ export default function Home() {
                 Escríbanos por WhatsApp
               </a>
             </div>
-            <div className="mx-auto max-w-xl rounded-2xl bg-[#1C1C1E]/[0.04] px-6 py-4 order-4 lg:order-none lg:mx-0">
-              <p className="text-lg font-semibold leading-snug">Piloto gratis de 2 semanas para 5 restaurantes fundadores.</p>
-              <p className="mt-1 text-[#1C1C1E]/75">Sin instalación ni plazo mínimo.</p>
-            </div>
+            <p className="order-3 text-sm font-semibold text-[#1C1C1E]/70 sm:self-center lg:order-none lg:self-start">
+              Piloto gratis de 2 semanas · Sin instalación · Sin plazo mínimo
+            </p>
           </div>
           <DemoVideo className="order-2 lg:order-none" />
+        </section>
+
+        <section aria-labelledby="viernes" className="flex flex-col gap-4">
+          <h2 id="viernes" className="text-3xl font-extrabold tracking-tight">Viernes en la noche</h2>
+          <p className="max-w-[56ch] text-xl leading-relaxed text-[#1C1C1E]/80">
+            La mesa de 8 pide la cuenta, cada uno quiere pagar lo suyo, el salonero pasa el datáfono 8 veces y en la puerta hay gente esperando esa mesa.
+          </p>
         </section>
 
         <section aria-labelledby="como-funciona" className="flex flex-col gap-8">
@@ -96,15 +136,25 @@ export default function Home() {
         </section>
 
         <section aria-labelledby="restaurante" className="flex flex-col gap-8">
-          <h2 id="restaurante" className="text-3xl font-extrabold tracking-tight">Para el restaurante</h2>
+          <h2 id="restaurante" className="text-3xl font-extrabold tracking-tight">Lo que gana su restaurante</h2>
           <ul className="grid gap-8 sm:grid-cols-3 sm:gap-6">
-            {FOR_RESTAURANT.map((f) => (
+            {GAINS.map((f) => (
               <li key={f.title} className="flex flex-col gap-2 border-t-2 border-[#D91E18] pt-4">
                 <h3 className="text-xl font-bold">{f.title}</h3>
                 <p className="leading-relaxed text-[#1C1C1E]/75">{f.text}</p>
               </li>
             ))}
           </ul>
+        </section>
+
+        <section aria-labelledby="riesgo" className="flex flex-col gap-6 rounded-3xl border-2 border-[#1C1C1E] px-6 py-10 sm:px-10">
+          <h2 id="riesgo" className="text-3xl font-extrabold tracking-tight">Pruébelo sin riesgo</h2>
+          <ul className="grid gap-3 text-lg font-semibold sm:grid-cols-3">
+            <li>Gratis por 2 semanas</li>
+            <li>Sin instalación</li>
+            <li>Sin plazo mínimo</li>
+          </ul>
+          <p className="text-lg leading-relaxed text-[#1C1C1E]/75">Si no le sirve, lo quitamos.</p>
         </section>
 
         <section aria-labelledby="faq" className="flex flex-col gap-6">
@@ -135,7 +185,7 @@ export default function Home() {
             <a className="underline underline-offset-4" href={`mailto:${BRAND.email}`}>{BRAND.email}</a>
             <a className="underline underline-offset-4" href={BRAND.whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>
             <a className="underline underline-offset-4" href={BRAND.instagram} target="_blank" rel="noopener noreferrer">Instagram {BRAND.instagramHandle}</a>
-            <Link className="underline underline-offset-4" href="/privacidad">Privacidad</Link>
+            <Link className="underline underline-offset-4" href="/privacidad" prefetch={false}>Privacidad</Link>
           </div>
         </div>
       </footer>
