@@ -176,3 +176,8 @@ Para retomar en otra sesión: leer `SPEC.md`, este archivo, y seguir desde "Sigu
 
 1. Mateo hace `git push` de los commits de la fase 5 y 5b (se despliega solo) y corre la lista de pruebas a mano (ver la respuesta de cierre de fase). Anotar acá qué falla.
 2. Si se quiere, fase 6 (Stripe en modo prueba), según SPEC.md.
+
+## Video de 30 s y portada (2026-10-12)
+- Panel: cada mesa abierta muestra cuánto lleva abierta ("Abierta · 1 h 40 min", `lib/panel/elapsed.ts`). Sin migración: `openedAt` ya venía en el estado.
+- Portada: copy de ventas, SEO (título, descripción, canonical, JSON-LD Organization y SoftwareApplication, `sitemap.xml`, `robots.txt` sin /panel, /demo, /m, /privacidad). El video se monta después de que carga la página (el póster es el LCP).
+- Video nuevo: `npm run demo:video:corto` (`scripts/video-corto/`). Graba en el restaurante de demostración con pagos reales (SINPE, Apple Pay y tarjeta simulados) y lo deja reiniciado. Salida en `videos/` (demo.mp4, demo-vertical.mp4 y pósters); copiar a `public/video/`. El anterior (`npm run demo:video`, /demo/en-vivo) sigue en el repo por si se quiere.

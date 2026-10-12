@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "demo:video": "node scripts/demo-video/index.mjs",
+    "demo:video:corto": "node scripts/video-corto/index.mjs",
     "restaurante:crear": "node --env-file=.env.local scripts/crear-restaurante.mjs"
   },
   "dependencies": {
