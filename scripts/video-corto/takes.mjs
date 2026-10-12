@@ -36,7 +36,8 @@ export function entorno(page, view, size, log) {
       log(`    ${now().toFixed(2).padStart(5)} s  ${nombre ?? ""}${late > 0.15 ? `  (${late.toFixed(2)} s tarde)` : ""}`);
     },
     /** Cámara: encuadra el rectángulo (en coordenadas de la página) con el zoom que quepa, centrado sobre el texto. */
-    async focus(rect, { k, margin = 0.9, ms = 0, force = false } = {}) {
+    /** Argumentos de `cam` para encuadrar un rectángulo (coordenadas de la página). */
+    focusArgs(rect, { k, margin = 0.9, force = false } = {}) {
       const availH = size.h - BAND;
       const fit = Math.min((size.w * margin) / rect.w, (availH * margin) / rect.h);
       const z = force && k ? k : Math.max(1, Math.min(k ?? fit, fit));
@@ -44,8 +45,12 @@ export function entorno(page, view, size, log) {
       const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
       const tx = clamp(size.w / 2 - z * px, size.w - z * size.w, 0) + z * px;
       const ty = clamp(availH / 2 - z * py, size.h - z * size.h, 0) + z * py;
-      await call("cam", px, py, z, tx, ty, ms);
-      return z;
+      return [px, py, z, tx, ty];
+    },
+    async focus(rect, { ms = 0, ...o } = {}) {
+      const a = this.focusArgs(rect, o);
+      await call("cam", ...a, ms);
+      return a[2];
     },
     async tap(locator, { scroll = true } = {}) {
       if (scroll) await locator.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" })).catch(() => undefined);
@@ -147,11 +152,16 @@ const CSS_C = `
   aside dl,
   aside div.grid.grid-cols-2.gap-2:has(> span),
   aside a[href*="/panel/qr"] { display: none !important; }
-  aside section li { padding: 7px 12px !important; }
+  aside section li { padding: 0.45rem 0.75rem !important; }
   aside section li > div > p:nth-child(n+2) { display: none !important; }
-  aside section li > div > p:first-child { font-size: 15px; }
-  aside section li svg { display: none !important; }
-  aside section li > div > p:first-child::before { content: "✓"; color: #059669; font-weight: 800; margin-right: 8px; }
+  aside section li > div > p:first-child { font-size: 0.95rem; }
+  html.solo-detalle main { visibility: hidden !important; }
+  html.solo-detalle [role="dialog"] { left: 1040px !important; }
+  [data-state="closed"] { display: none !important; }
+  html.sin-detalle aside { visibility: hidden !important; }
+  html.solo-detalle aside { border-left-color: transparent !important; }
+  html.grande { font-size: 23px !important; }
+  html.grande aside { padding-top: 36px !important; }
 `;
 
 /** Antes de grabar la toma C: se abre el detalle de la mesa 4 y se esconde lo que no cuenta la historia. */
@@ -160,6 +170,22 @@ export async function prepararC(page, tall = false) {
   // En vertical el aviso de confirmación sube para que el texto del video no lo tape.
   await panel.addStyleTag({ content: CSS_C + (tall ? `[role="dialog"] { bottom: 250px !important; left: 16px !important; right: 16px !important; width: auto !important; border-radius: 16px !important; }` : "") });
   await panel.getByRole("button", { name: /^Mesa 4,/ }).click();
+  // Horizontal: solo se ve el detalle (sin tarjetas cortadas). Vertical: letra más grande para que llene la pantalla.
+  await panel.evaluate((c) => document.documentElement.classList.add(c), tall ? "grande" : "solo-detalle");
+  // Al confirmar «Liberar mesa» el panel vuelve a su tamaño normal en el mismo instante del clic.
+  await panel.evaluate(() => {
+    document.addEventListener("click", (e) => {
+      const b = e.target instanceof Element ? e.target.closest('[role="dialog"] button') : null;
+      if (!b || b.textContent?.trim() !== "Liberar mesa") return;
+      const c = document.documentElement.classList;
+      c.remove("grande");
+      if (c.contains("solo-detalle")) {
+        c.remove("solo-detalle"); c.add("sin-detalle");
+        const a = window.__camGrid;
+        if (a) window.parent.V.cam(...a, 0);
+      }
+    }, true);
+  });
   await panel.getByText("SINPE por confirmar").first().waitFor({ state: "hidden", timeout: 100 }).catch(() => undefined);
 }
 
@@ -174,14 +200,19 @@ export async function tomaC(E, { sb, ctx, pagos, otras }) {
   await call("show", "panel");
   let gridRect = null;
   if (!tall) {
+    gridRect = await panel.evaluate(() => {
+      const rs = [...document.querySelectorAll("main button")].filter((b) => /^Mesa \d/.test(b.getAttribute("aria-label") ?? "")).map((b) => b.getBoundingClientRect());
+      const x = Math.min(...rs.map((r) => r.x)), y = Math.min(...rs.map((r) => r.y));
+      return { x, y, w: Math.max(...rs.map((r) => r.right)) - x, h: Math.max(...rs.map((r) => r.bottom)) - y };
+    });
+    const ga = E.focusArgs(gridRect, { k: 1.3 });
+    await panel.evaluate((a) => { window.__camGrid = a; }, ga);
     const b = await panel.locator("aside").first().boundingBox();
     if (b) {
-      const k = 1.04, cx = b.x + b.width / 2;
-      await call("cam", cx, 0, k, cx - (k - 1) * b.width / 2, 0, 0);
+      // El detalle va centrado y más grande; el resto del panel queda oculto.
+      const k = 1.1, cx = b.x + b.width / 2;
+      await call("cam", cx, b.y, k, E.size.w / 2, 8, 0);
     }
-    const bx = [];
-    for (let n = 1; n <= 8; n++) bx.push(await panel.getByRole("button", { name: new RegExp(`^Mesa ${n},`) }).boundingBox());
-    gridRect = union(bx);
   }
   await call("drift", 1, 1.03, 6);
   await at(0.4 - LAT, "llega un SINPE por confirmar");
@@ -200,13 +231,19 @@ export async function tomaC(E, { sb, ctx, pagos, otras }) {
   await E.tap(panel.getByRole("button", { name: "Liberar mesa" }).first(), { scroll: false });
   await at(4.5, "confirmar");
   await E.tap(panel.getByRole("dialog").getByRole("button", { name: "Liberar mesa" }), { scroll: false });
-  await at(5.4, "mesa 4 libre");
+  // Al confirmar, el detalle se cierra: la cuadrícula tiene que verse ya con su tamaño normal.
   if (tall) {
-    const back = panel.getByRole("button", { name: "Volver a las mesas" });
-    if (await back.count()) await E.tap(back.first(), { scroll: false });
+    // Vuelve a la cuadrícula y la letra recupera su tamaño en el mismo instante.
+    await panel.evaluate(() => {
+      document.documentElement.classList.remove("grande");
+      document.querySelector('button[aria-label="Volver a las mesas"]')?.click();
+    });
+  } else {
+    await panel.evaluate(() => { document.documentElement.classList.remove("solo-detalle"); document.documentElement.classList.add("sin-detalle"); });
+    if (gridRect) await E.focus(gridRect, { k: 1.3, ms: 0 });
   }
+  await at(5.6, "texto de la escena 5");
   await call("cap", TEXTO.atiende);
-  if (gridRect) await E.focus(gridRect, { k: 1.45, ms: 250 });
   await at(6.0, "escena 5");
   // Las otras tres mesas pagaron por su cuenta desde el QR y se liberan sin avisos.
   const cuentas = {};
