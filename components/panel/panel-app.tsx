@@ -64,7 +64,7 @@ export function PanelApp() {
         </p>
       ) : null}
 
-      <div className="md:grid md:grid-cols-[minmax(0,1fr)_26rem] lg:grid-cols-[minmax(0,1fr)_30rem]">
+      <div className="md:grid md:min-h-[calc(100dvh-4rem)] md:grid-cols-[minmax(0,1fr)_26rem] lg:grid-cols-[minmax(0,1fr)_30rem]">
         <main className="p-4">
           {!state && offline ? (
             <div role="alert" className="mx-auto mt-10 flex max-w-sm flex-col items-center gap-3 rounded-2xl border bg-card p-6 text-center">

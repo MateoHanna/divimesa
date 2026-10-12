@@ -40,6 +40,7 @@ describe("marca Divimesa", () => {
   it("los textos públicos no dicen \"contrato\"", () => {
     const home = readFileSync(join(__dirname, "..", "app", "page.tsx"), "utf8");
     expect(home).not.toMatch(/contrato/i);
-    expect(home).toContain("Sin instalación ni plazo mínimo.");
+    expect(home).toContain("Piloto gratis de 2 semanas · Sin instalación · Sin plazo mínimo");
+    expect(home).toContain("Si no le sirve, lo quitamos.");
   });
 });

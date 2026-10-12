@@ -58,7 +58,7 @@ export function DemoVideo({ className }: { className?: string }) {
       </picture>
       {kind ? (
         <video ref={ref} key={kind} className="absolute inset-0 block size-full object-cover" src={VIDEOS[kind].src} poster={VIDEOS[kind].poster}
-          autoPlay muted loop playsInline controls preload="auto" aria-label="Video de Divimesa: cómo paga una mesa"
+          autoPlay muted loop playsInline preload="auto" aria-label="Video de Divimesa: cómo paga una mesa"
           onPlaying={() => { setPlaying(true); setNeedsTap(false); }} />
       ) : null}
       {needsTap ? (
