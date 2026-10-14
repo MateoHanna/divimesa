@@ -16,7 +16,7 @@ import { useBroadcast } from "@/components/realtime/use-broadcast";
 import { AnimatedMoney } from "@/components/ui/animated-number";
 import { useJustPaid } from "@/components/ui/use-just-paid";
 import { brandVars } from "@/lib/branding";
-import { canDemoConfirm, confirmedByStaff, orderedMethods } from "@/lib/client/methods";
+import { canDemoConfirm, confirmedByStaff, isComingSoon, orderedMethods } from "@/lib/client/methods";
 import { displayTableNumber } from "@/lib/demo/display";
 
 import { call } from "./call";
@@ -522,10 +522,11 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
         </summary>
         <ul className="flex flex-col gap-1.5 px-3 pb-3 text-muted-foreground">
           <li>Solo ve la cuenta de su mesa. No instala nada ni crea una cuenta.</li>
-          {methods.includes("card") ? (
-            <li>En esta página no se escriben datos de tarjeta: el pago se completa en la pantalla del proveedor de pagos.</li>
-          ) : methods.includes("sinpe") ? (
+          {methods.includes("sinpe") ? (
             <li>El pago es un SINPE Móvil que usted hace en su banco, directo al restaurante. Divimesa no recibe su dinero ni le pide datos de tarjeta.</li>
+          ) : null}
+          {methods.some(isComingSoon) ? (
+            <li>Con Apple Pay o Google Pay, el pago se completa en la pantalla del proveedor de pagos.</li>
           ) : null}
           {methods.includes("terminal") ? (
             <li>Si paga con tarjeta, el salonero se la cobra con el datáfono del restaurante, como siempre. Aquí no se escriben datos de tarjeta.</li>

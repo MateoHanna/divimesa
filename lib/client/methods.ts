@@ -1,10 +1,12 @@
 import type { ClientState, PayMethod } from "./types";
 
 /**
- * Orden en pantalla: SINPE Móvil, después tarjeta con el datáfono del restaurante. Tarjeta, Apple Pay y
- * Google Pay en línea son simulaciones que solo existen en la demo.
+ * Orden en pantalla: SINPE Móvil, después tarjeta con el datáfono del restaurante. Apple Pay y Google Pay en
+ * línea son simulaciones que solo existen en la demo.
+ * La tarjeta en línea ('card') ya no se muestra: escribir el número en el celular es más lento que pedir el
+ * datáfono. La base todavía la acepta en la demo, pero ninguna pantalla la ofrece.
  */
-const ORDER: PayMethod[] = ["sinpe", "terminal", "card", "apple_pay", "google_pay"];
+const ORDER: PayMethod[] = ["sinpe", "terminal", "apple_pay", "google_pay"];
 
 /** Los métodos que el restaurante ofrece, en el orden de pantalla. Ignora los que no conocemos. */
 export function orderedMethods(methods: readonly PayMethod[]): PayMethod[] {

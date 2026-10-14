@@ -17,9 +17,12 @@ describe("métodos de pago por restaurante", () => {
   it("un restaurante real ofrece SINPE Móvil y tarjeta con el datáfono", () => {
     expect(orderedMethods(real.restaurant.methods)).toEqual(["sinpe", "terminal"]);
   });
-  it("la demo ofrece los cinco, con SINPE Móvil primero y el datáfono después", () => {
-    expect(orderedMethods(demo.restaurant.methods)).toEqual(["sinpe", "terminal", "card", "apple_pay", "google_pay"]);
-    expect(orderedMethods(["google_pay", "card", "sinpe"])).toEqual(["sinpe", "card", "google_pay"]);
+  it("la demo muestra SINPE Móvil, datáfono, Apple Pay y Google Pay, en ese orden", () => {
+    expect(orderedMethods(demo.restaurant.methods)).toEqual(["sinpe", "terminal", "apple_pay", "google_pay"]);
+    expect(orderedMethods(["google_pay", "sinpe"])).toEqual(["sinpe", "google_pay"]);
+  });
+  it("la tarjeta en línea ya no se muestra aunque la base la ofrezca", () => {
+    expect(orderedMethods(["card", "terminal"])).toEqual(["terminal"]);
   });
   it("sin métodos en la respuesta (código viejo de la base), se asume la demo", () => {
     expect(raw({ sinpe: null }).restaurant.methods).toEqual(["card", "apple_pay", "google_pay", "sinpe"]);
