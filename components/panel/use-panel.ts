@@ -81,18 +81,20 @@ export function usePanel(onUnauthorized: () => void) {
           blink(p.tableId, "payment");
         }
       }
-      // SINPE por confirmar: alarma propia y aviso fijo hasta que el salonero responda.
-      const sinpeNotice = (tableNumber: number, tableId: string, billId: string, paymentId: string, amount: number, code: string | null) =>
-        notify("sinpe", `Mesa ${tableNumber} · SINPE por confirmar ${formatCRC(amount)}${code ? ` · ${code}` : ""}`, { sticky: true, tableId, billId, paymentId });
+      // SINPE por confirmar o datáfono pedido: alarma propia y aviso fijo hasta que el salonero responda.
+      const sinpeNotice = (tableNumber: number, tableId: string, billId: string, paymentId: string, amount: number, code: string | null, method: "sinpe" | "terminal") =>
+        notify("sinpe", method === "terminal"
+          ? `Mesa ${tableNumber} · Pide el datáfono · ${formatCRC(amount)}`
+          : `Mesa ${tableNumber} · SINPE por confirmar ${formatCRC(amount)}${code ? ` · ${code}` : ""}`, { sticky: true, tableId, billId, paymentId });
       if (prev.current === null) {
-        // Primera lectura (se abrió el panel con SINPE esperando): avisos fijos, sin sonido.
-        for (const t of next.tables) for (const p of t.bill?.pending ?? []) sinpeNotice(t.number, t.id, t.bill!.id, p.id, p.amount + p.tip, p.code);
+        // Primera lectura (se abrió el panel con pagos esperando): avisos fijos, sin sonido.
+        for (const t of next.tables) for (const p of t.bill?.pending ?? []) sinpeNotice(t.number, t.id, t.bill!.id, p.id, p.amount + p.tip, p.code, p.method);
       }
       if (ev.pending.length > 0) {
         alarm();
         rang = true;
         for (const e of ev.pending) {
-          sinpeNotice(e.tableNumber, e.tableId, e.billId, e.paymentId, e.amount, e.code);
+          sinpeNotice(e.tableNumber, e.tableId, e.billId, e.paymentId, e.amount, e.code, e.method);
           blink(e.tableId, "payment");
         }
       }
@@ -174,7 +176,7 @@ export function usePanel(onUnauthorized: () => void) {
     [apply, notify, onUnauthorized],
   );
 
-  // Mientras haya un SINPE sin responder, la alarma se repite cada 20 s para que no se quede olvidado.
+  // Mientras haya un SINPE o un datáfono sin responder, la alarma se repite cada 20 s para que no se quede olvidado.
   const pendingCount = state?.tables.reduce((n, t) => n + (t.bill?.pending.length ?? 0), 0) ?? 0;
   useEffect(() => {
     if (pendingCount === 0) return;

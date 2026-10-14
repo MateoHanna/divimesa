@@ -39,7 +39,7 @@ begin
 
   st := public.client_state(tok, sa);
   perform pg_temp.assert('estado_modo', st #>> '{bill,mode}' = 'total' and st #>> '{restaurant,sinpe,number}' = '88887777'
-    and st #>> '{restaurant,sinpe,test}' = 'false' and st #> '{restaurant,methods}' = '["sinpe"]'::jsonb and jsonb_array_length(st #> '{bill,lines}') = 0);
+    and st #>> '{restaurant,sinpe,test}' = 'false' and st #> '{restaurant,methods}' = '["sinpe", "terminal"]'::jsonb and jsonb_array_length(st #> '{bill,lines}') = 0);
 
   -- ---- Métodos y modos permitidos
   perform pg_temp.expect('tarjeta_en_real', format('select public.client_create_payment(%L,%L,%L,null,%L,%L,0,%L,null)', tok, sa, 'all', 'card', 'percent', 'mock'), 'method_not_available');
@@ -161,7 +161,7 @@ begin
   select id into dbill from public.bills where table_id = demo_table;
   st := public.client_state(demo_tok, sa);
   perform pg_temp.assert('demo_sinpe_prueba', st #>> '{restaurant,sinpe,number}' = '00000000' and st #>> '{restaurant,sinpe,test}' = 'true'
-    and jsonb_array_length(st #> '{restaurant,methods}') = 4 and st #>> '{bill,mode}' = 'items');
+    and jsonb_array_length(st #> '{restaurant,methods}') = 5 and st #>> '{bill,mode}' = 'items');
   -- Tarjeta simulada en la demo: permitida.
   r := public.client_create_payment(demo_tok, sa, 'all', null, 'card', 'percent', 0, 'mock', null);
   perform pg_temp.assert('demo_tarjeta', r->>'ok' = 'true');

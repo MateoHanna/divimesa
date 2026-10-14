@@ -228,10 +228,19 @@ describe("cuenta de solo el total (modo piloto)", () => {
       sinpe({ id: "c", reported_at: "2026-10-09T11:57:00Z", status: "failed" }),
     ], [{ payment_id: "a", name: "Ana Mora", id_type: "fisica", id_number: "112340567", email: "ana@example.com" }]);
     expect(s.tables[0].bill!.pending).toEqual([{
-      id: "a", amount: 10000, tip: 1000, kind: "amount", code: "M1-7K2", payerName: "Ana Mora", reportedAt: "2026-10-09T11:56:00Z",
+      id: "a", method: "sinpe", amount: 10000, tip: 1000, kind: "amount", code: "M1-7K2", payerName: "Ana Mora", reportedAt: "2026-10-09T11:56:00Z",
       invoice: { name: "Ana Mora", idType: "fisica", idNumber: "112340567", email: "ana@example.com" },
     }]);
     expect(s.tables[0].bill!.payments).toEqual([]); // todavía no es un pago confirmado
+  });
+
+  it("un datáfono pedido desde el QR aparece por confirmar junto a los SINPE, en orden de llegada", () => {
+    const s = build(total(), [
+      pay({ id: "s", method: "sinpe", source: "qr", status: "pending", paid_at: null, reported_at: "2026-10-09T11:57:00Z", amount: 5000 }),
+      pay({ id: "d", method: "terminal", source: "qr", status: "pending", paid_at: null, reported_at: "2026-10-09T11:56:00Z", amount: 8000, tip_amount: 800 }),
+      pay({ id: "x", method: "terminal", source: "qr", status: "failed", paid_at: null, reported_at: "2026-10-09T11:55:00Z" }), // cancelado
+    ]);
+    expect(s.tables[0].bill!.pending.map((p) => [p.id, p.method, p.amount + p.tip])).toEqual([["d", "terminal", 8800], ["s", "sinpe", 5000]]);
   });
 
   it("platos apartados por un SINPE por confirmar ('infinity') cuentan como apartados", () => {

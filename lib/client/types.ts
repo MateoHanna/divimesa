@@ -32,9 +32,13 @@ export interface ClientSplit {
   due: number;
 }
 
-/** SINPE más reciente de esta sesión. */
+/**
+ * Pago por confirmar más reciente de esta sesión: un SINPE Móvil o una solicitud de datáfono
+ * ("tarjeta con el salonero"). La solicitud de datáfono nace ya reportada.
+ */
 export interface MySinpe {
   id: string;
+  method: "sinpe" | "terminal";
   /** 'pending': en instrucciones (reported=false) o por confirmar (reported=true). */
   status: "pending" | "paid" | "failed";
   /** Lo que baja el saldo. El cliente transfiere amount + tip. */
@@ -68,7 +72,7 @@ export interface ClientState {
     name: string; primaryColor: string; logoUrl: string | null; serviceRate: number; vatRate: number; pricesIncludeTaxes: boolean;
     /** Datos para el SINPE (en la demo, un número de prueba). Null si el restaurante no lo configuró. */
     sinpe: { number: string; holder: string; test: boolean } | null;
-    /** Métodos que ofrece este restaurante. Un restaurante real solo ofrece SINPE. */
+    /** Métodos que ofrece este restaurante. Un restaurante real ofrece SINPE (si lo configuró) y el datáfono. */
     methods: PayMethod[];
   };
   serverTime: string;
@@ -80,7 +84,8 @@ export interface ClientState {
 }
 
 export type PayMode = "all" | "items" | "equal" | "amount";
-export type PayMethod = "card" | "apple_pay" | "google_pay" | "sinpe";
+/** 'terminal': tarjeta con el datáfono del restaurante (el salonero la cobra en la mesa). */
+export type PayMethod = "card" | "apple_pay" | "google_pay" | "sinpe" | "terminal";
 export type TipChoice = { type: "percent"; value: 0 | 5 | 10 } | { type: "amount"; value: number };
 
 export interface InvoiceInput {

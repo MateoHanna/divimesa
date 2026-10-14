@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckIcon, LockIcon, ShieldCheckIcon, TriangleAlertIcon, WifiOffIcon } from "lucide-react";
+import { CheckIcon, CreditCardIcon, LockIcon, ShieldCheckIcon, TriangleAlertIcon, WifiOffIcon } from "lucide-react";
 
 import type { ClientState, InvoiceInput, PayMethod, PayMode, TipChoice, Unavailable } from "@/lib/client/types";
 import { earliestReservation, quote, selectableLines } from "@/lib/client/quote";
@@ -16,7 +16,7 @@ import { useBroadcast } from "@/components/realtime/use-broadcast";
 import { AnimatedMoney } from "@/components/ui/animated-number";
 import { useJustPaid } from "@/components/ui/use-just-paid";
 import { brandVars } from "@/lib/branding";
-import { canDemoConfirm, orderedMethods } from "@/lib/client/methods";
+import { canDemoConfirm, confirmedByStaff, orderedMethods } from "@/lib/client/methods";
 import { displayTableNumber } from "@/lib/demo/display";
 
 import { call } from "./call";
@@ -24,6 +24,7 @@ import { EqualSplit } from "./equal-split";
 import { PaySummary, type TipUi } from "./pay-summary";
 import { SinpeScreen } from "./sinpe-screen";
 import { SplitItemDialog } from "./split-item-dialog";
+import { TerminalScreen } from "./terminal-screen";
 import { useClientState } from "./use-client-state";
 
 const MODES: { id: PayMode; title: string; sub: string }[] = [
@@ -174,10 +175,14 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
   }, [tipUi, otherTip]);
   const freeAmount = parseInt(freeText.replace(/\D/g, ""), 10) || 0;
   const q = useMemo(() => quote(state, mode, selected, tip, freeAmount), [state, mode, selected, tip, freeAmount]);
-  const methods = orderedMethods(state.restaurant.methods);
-  const effectiveMethod: PayMethod = methods.includes(method) ? method : methods[0] ?? "sinpe";
   const sinpeInfo = state.restaurant.sinpe;
-  const noSinpe = !methods.includes("card") && !sinpeInfo; // restaurante real sin SINPE configurado
+  // SINPE solo si el restaurante tiene número; el datáfono siempre (lo cobra el salonero).
+  const methods = orderedMethods(state.restaurant.methods).filter((m) => m !== "sinpe" || !!sinpeInfo);
+  const effectiveMethod: PayMethod = methods.includes(method) ? method : methods[0] ?? "sinpe";
+  const noMethods = methods.length === 0; // restaurante sin ningún método por aquí
+  // Pago propio por confirmar: un SINPE (instrucciones o espera) o el datáfono pedido.
+  const mine = bill?.mySinpe ?? null;
+  const minePending = mine?.status === "pending" && (mine.method === "terminal" || !!sinpeInfo);
   const invoiceError = invoiceProblem(invoice);
 
   const reserve = useCallback(async (ids: string[]) => {
@@ -246,8 +251,8 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
       window.location.assign(res.json.redirectUrl);
       return; // se queda en "Un momento…" hasta que cambie la página
     }
-    if (res.json?.ok && effectiveMethod === "sinpe" && res.json.state) {
-      // SINPE: no hay pasarela. El estado trae la pantalla de instrucciones (my_sinpe).
+    if (res.json?.ok && confirmedByStaff(effectiveMethod) && res.json.state) {
+      // SINPE o datáfono: no hay pasarela. El estado trae la pantalla siguiente (my_sinpe).
       setSubmitting(false); setSinpeError(null);
       apply(res.json.state);
       return;
@@ -279,6 +284,18 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
     setReporting(true); setSinpeError(null);
     await call(`/api/payments/${id}/cancel`, "POST");
     setReporting(false);
+    await refresh();
+  }
+
+  // "Ya no, cancelar" del datáfono pedido. Si el salonero ya lo cobró, el estado lo muestra como pagado.
+  async function cancelTerminal() {
+    const id = bill?.mySinpe?.id;
+    if (!id || reporting) return;
+    setReporting(true); setSinpeError(null);
+    const res = await call<{ status?: string }>(`/api/payments/${id}/cancel`, "POST");
+    setReporting(false);
+    if (res.json?.ok && res.json.status === "failed") closeNotice(id); // lo canceló él: sin aviso de "cancelado"
+    else if (!res.json?.ok) setSinpeError(res.status === 0 ? "Sin conexión. Intente de nuevo." : (res.json?.error ?? "No se pudo cancelar. Intente de nuevo."));
     await refresh();
   }
 
@@ -356,9 +373,20 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
             bill.mySinpe.status === "paid" ? (
               <div role="status" className="flex flex-col gap-2 rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-950">
                 <p className="flex items-center gap-2 text-lg font-bold"><CheckIcon className="size-5" aria-hidden /> Pago confirmado</p>
-                <p className="text-sm">El restaurante recibió su SINPE de {formatCRC(bill.mySinpe.amount + bill.mySinpe.tip)}. ¡Gracias!</p>
+                <p className="text-sm">
+                  {bill.mySinpe.method === "terminal"
+                    ? <>El salonero registró su pago con tarjeta de {formatCRC(bill.mySinpe.amount + bill.mySinpe.tip)}. ¡Gracias!</>
+                    : <>El restaurante recibió su SINPE de {formatCRC(bill.mySinpe.amount + bill.mySinpe.tip)}. ¡Gracias!</>}
+                </p>
                 <button type="button" className="min-h-11 self-start rounded-lg border border-emerald-400 bg-white px-4 text-sm font-semibold"
                   onClick={() => closeNotice(bill.mySinpe!.id)}>Listo</button>
+              </div>
+            ) : bill.mySinpe.method === "terminal" ? (
+              <div role="status" className="flex flex-col gap-2 rounded-2xl border-2 border-amber-400 bg-amber-50 p-4 text-amber-950">
+                <p className="flex items-center gap-2 text-lg font-bold"><CreditCardIcon className="size-5" aria-hidden /> Se canceló el cobro con tarjeta</p>
+                <p className="text-sm">El salonero canceló la solicitud del datáfono. Si todavía le falta pagar, elija cómo hacerlo.</p>
+                <button type="button" className="min-h-11 self-start rounded-lg border border-amber-400 bg-white px-4 text-sm font-semibold"
+                  onClick={() => closeNotice(bill.mySinpe!.id)}>Entendido</button>
               </div>
             ) : (
               <div role="alert" className="flex flex-col gap-2 rounded-2xl border-2 border-amber-400 bg-amber-50 p-4 text-amber-950">
@@ -370,13 +398,18 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
             )
           ) : null}
 
-          {bill.mySinpe?.status === "pending" && sinpeInfo ? (
-            <SinpeScreen mine={bill.mySinpe} sinpe={sinpeInfo} busy={reporting} error={sinpeError}
+          {minePending && mine?.method === "sinpe" && sinpeInfo ? (
+            <SinpeScreen mine={mine} sinpe={sinpeInfo} busy={reporting} error={sinpeError}
               onReport={(n) => void reportSinpe(n)} onBack={() => void backFromSinpe()}
               onDemoConfirm={canDemoConfirm(state, demo) ? () => { void fetch(`/api/demo/mesa/${token}/confirm`, { method: "POST" }).then(() => refresh()); } : undefined} />
           ) : null}
+          {minePending && mine?.method === "terminal" ? (
+            <TerminalScreen mine={mine} test={!!sinpeInfo?.test} busy={reporting} error={sinpeError}
+              onCancel={() => void cancelTerminal()}
+              onDemoConfirm={canDemoConfirm(state, demo) ? () => { void fetch(`/api/demo/mesa/${token}/confirm`, { method: "POST" }).then(() => refresh()); } : undefined} />
+          ) : null}
 
-          {!(bill.mySinpe?.status === "pending" && sinpeInfo) ? (
+          {!minePending ? (
           <>
           <section aria-label="Cuenta">
             {bill.mode === "items" ? (
@@ -467,7 +500,7 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
             </div>
           ) : null}
 
-          {noSinpe ? (
+          {noMethods ? (
             <p role="status" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
               Este restaurante todavía no recibe pagos por aquí. Pague con su salonero.
             </p>
@@ -491,9 +524,12 @@ export function ClientApp({ token, initial, channel, flash, host, recording = fa
           <li>Solo ve la cuenta de su mesa. No instala nada ni crea una cuenta.</li>
           {methods.includes("card") ? (
             <li>En esta página no se escriben datos de tarjeta: el pago se completa en la pantalla del proveedor de pagos.</li>
-          ) : (
+          ) : methods.includes("sinpe") ? (
             <li>El pago es un SINPE Móvil que usted hace en su banco, directo al restaurante. Divimesa no recibe su dinero ni le pide datos de tarjeta.</li>
-          )}
+          ) : null}
+          {methods.includes("terminal") ? (
+            <li>Si paga con tarjeta, el salonero se la cobra con el datáfono del restaurante, como siempre. Aquí no se escriben datos de tarjeta.</li>
+          ) : null}
           <li>Los datos de factura son opcionales y solo se usan para su comprobante.</li>
           <li>Si algo no le parece bien, pídale ayuda al salonero antes de pagar.</li>
         </ul>

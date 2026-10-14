@@ -63,15 +63,23 @@ describe("panelEvents", () => {
   });
 
   it("un SINPE nuevo por confirmar genera un evento con monto + propina", () => {
-    const sinpe = { id: "s1", amount: 10000, tip: 1000, kind: "full" as const, code: "M2-7K2", payerName: "Ana", reportedAt: "2026-01-01T00:00:02Z", invoice: null };
+    const sinpe = { id: "s1", method: "sinpe" as const, amount: 10000, tip: 1000, kind: "full" as const, code: "M2-7K2", payerName: "Ana", reportedAt: "2026-01-01T00:00:02Z", invoice: null };
     const prev = state(table(2, "open"));
     const open = table(2, "open");
     open.bill!.pending = [sinpe];
     const e = panelEvents(prev, state(open));
-    expect(e.pending).toEqual([{ paymentId: "s1", tableId: "t2", tableNumber: 2, billId: "b2", amount: 11000, tip: 1000, code: "M2-7K2", payerName: "Ana" }]);
+    expect(e.pending).toEqual([{ paymentId: "s1", method: "sinpe", tableId: "t2", tableNumber: 2, billId: "b2", amount: 11000, tip: 1000, code: "M2-7K2", payerName: "Ana" }]);
     // Ya estaba por confirmar: no suena otra vez.
     expect(panelEvents(state(open), state(open)).pending).toEqual([]);
     // Primera lectura: sin eventos.
     expect(panelEvents(null, state(open)).pending).toEqual([]);
+  });
+
+  it("un datáfono pedido desde el QR también suena, con su método", () => {
+    const req = { id: "d1", method: "terminal" as const, amount: 8000, tip: 800, kind: "equal_share" as const, code: null, payerName: null, reportedAt: "2026-01-01T00:00:03Z", invoice: null };
+    const open = table(3, "open");
+    open.bill!.pending = [req];
+    const e = panelEvents(state(table(3, "open")), state(open));
+    expect(e.pending).toEqual([{ paymentId: "d1", method: "terminal", tableId: "t3", tableNumber: 3, billId: "b3", amount: 8800, tip: 800, code: null, payerName: null }]);
   });
 });

@@ -71,7 +71,14 @@ export function DemoPanelCard({ token, initial, channel }: { token: string; init
 
       {bill ? (
         <>
-          {bill.pending.map((p) => (
+          {bill.pending.map((p) => p.method === "terminal" ? (
+            <div key={p.id} role="alert" className="flex flex-col gap-2 rounded-2xl border-2 border-rose-500 bg-rose-50 p-3 text-rose-950">
+              <p className="text-xs font-bold tracking-wide uppercase">Pide el datáfono</p>
+              <p className="text-3xl font-extrabold tabular-nums">{formatCRC(p.amount + p.tip)}</p>
+              <p className="text-sm text-rose-900">Así avisa el panel cuando un cliente quiere pagar su parte con tarjeta. Usted le lleva el datáfono, cobra ese monto y toca «Cobrado».</p>
+              <Button size="lg" className="h-14 bg-emerald-700 text-base font-bold text-white hover:bg-emerald-800" disabled={confirming} onClick={() => void confirm()}>Cobrado</Button>
+            </div>
+          ) : (
             <div key={p.id} role="alert" className="flex flex-col gap-2 rounded-2xl border-2 border-rose-500 bg-rose-50 p-3 text-rose-950">
               <p className="text-xs font-bold tracking-wide uppercase">SINPE por confirmar</p>
               <p className="text-3xl font-extrabold tabular-nums">{formatCRC(p.amount + p.tip)}</p>

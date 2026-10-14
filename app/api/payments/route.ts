@@ -22,7 +22,7 @@ const schema = z.object({
   /** Solo en mode "amount" (monto libre): colones enteros. */
   amount: z.number().int().min(1).max(100_000_000).optional(),
   itemIds: z.array(z.uuid()).max(100).optional(),
-  method: z.enum(["card", "apple_pay", "google_pay", "sinpe"]),
+  method: z.enum(["card", "apple_pay", "google_pay", "sinpe", "terminal"]),
   tip: z.discriminatedUnion("type", [
     z.object({ type: z.literal("percent"), value: z.number().int().min(0).max(100) }),
     z.object({ type: z.literal("amount"), value: z.number().int().min(0).max(1_000_000) }),
@@ -59,9 +59,10 @@ export const POST = clientRoute(async (req) => {
 
   const paymentId = created.payment_id;
 
-  // SINPE Móvil: no hay pasarela. El cliente transfiere directo al restaurante y la pantalla de instrucciones
-  // sale del estado de la mesa (my_sinpe). Divimesa no recibe dinero.
-  if (body.method === "sinpe") {
+  // SINPE Móvil y datáfono: no hay pasarela. En SINPE el cliente transfiere directo al restaurante; con el
+  // datáfono el salonero le cobra en la mesa. La pantalla siguiente sale del estado de la mesa (my_sinpe).
+  // Divimesa no recibe dinero ni datos de tarjeta.
+  if (body.method === "sinpe" || body.method === "terminal") {
     return {
       paymentId, amount: created.amount, tip: created.tip, code: created.reference_code,
       state: await loadClientState(token, session),

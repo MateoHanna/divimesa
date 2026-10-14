@@ -49,12 +49,16 @@ export interface PanelPayment {
   invoice: PanelInvoice | null;
 }
 
-/** SINPE que el cliente dice haber hecho y el salonero todavía no confirma. */
+/**
+ * Pago por confirmar: un SINPE que el cliente dice haber hecho, o una solicitud de datáfono ("tarjeta con el
+ * salonero") que el salonero todavía no cobra.
+ */
 export interface PendingPayment {
   id: string;
+  method: "sinpe" | "terminal";
   /** Lo que baja el saldo de la cuenta. */
   amount: number;
-  /** Propina aparte: el cliente transfiere amount + tip. */
+  /** Propina aparte: el cliente paga amount + tip (transferencia o datáfono). */
   tip: number;
   kind: PanelPayment["kind"];
   code: string | null;

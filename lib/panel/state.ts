@@ -161,10 +161,11 @@ export function buildBill(
         invoice: invoiceOf(p.id),
       })),
     pending: payments
-      .filter((p) => p.status === "pending" && p.method === "sinpe" && !!p.reported_at)
+      .filter((p) => p.status === "pending" && (p.method === "sinpe" || p.method === "terminal") && !!p.reported_at)
       .sort((a, b) => (a.reported_at as string).localeCompare(b.reported_at as string))
       .map((p) => ({
         id: p.id,
+        method: p.method === "terminal" ? ("terminal" as const) : ("sinpe" as const),
         amount: p.amount,
         tip: p.tip_amount,
         kind: p.kind,

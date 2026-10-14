@@ -13,13 +13,14 @@ export interface PaymentEvent {
   completed: boolean;
 }
 
-/** Un SINPE nuevo por confirmar. */
+/** Un pago nuevo por confirmar: SINPE reportado o datáfono pedido. */
 export interface PendingEvent {
   paymentId: string;
+  method: "sinpe" | "terminal";
   tableId: string;
   tableNumber: number;
   billId: string;
-  /** Lo que debe llegar al banco: monto de la cuenta + propina. */
+  /** Lo que debe llegar al banco o cobrarse en el datáfono: monto de la cuenta + propina. */
   amount: number;
   tip: number;
   code: string | null;
@@ -27,7 +28,7 @@ export interface PendingEvent {
 }
 
 export interface PanelEvents {
-  /** SINPE que el cliente reportó entre las dos lecturas (todavía por confirmar). */
+  /** SINPE reportados o datáfonos pedidos entre las dos lecturas (todavía por confirmar). */
   pending: PendingEvent[];
   /** Un evento por pago nuevo, del más viejo al más nuevo. */
   payments: PaymentEvent[];
@@ -56,7 +57,7 @@ export function panelEvents(prev: PanelState | null, next: PanelState): PanelEve
     for (const p of t.bill.pending) {
       if (seenPending.has(p.id)) continue;
       pending.push({
-        paymentId: p.id, tableId: t.id, tableNumber: t.number, billId: t.bill.id,
+        paymentId: p.id, method: p.method, tableId: t.id, tableNumber: t.number, billId: t.bill.id,
         amount: p.amount + p.tip, tip: p.tip, code: p.code, payerName: p.payerName,
       });
     }

@@ -78,8 +78,8 @@ export function TableDetail({
       {bill ? (
         <>
           <PendingSinpe pending={bill.pending} busy={busy}
-            onConfirm={(id) => act(`/api/panel/payments/${id}/confirm`, "POST", undefined, "SINPE confirmado")}
-            onReject={(id) => act(`/api/panel/payments/${id}/reject`, "POST", undefined, "Marcado como «No llegó»")} />
+            onConfirm={(p) => act(`/api/panel/payments/${p.id}/confirm`, "POST", undefined, p.method === "terminal" ? "Pago con datáfono registrado" : "SINPE confirmado")}
+            onReject={(p) => act(`/api/panel/payments/${p.id}/reject`, "POST", undefined, p.method === "terminal" ? "Cobro con datáfono cancelado" : "Marcado como «No llegó»")} />
 
           {bill.split ? (
             <div className="flex flex-col gap-2 rounded-xl border border-sky-300 bg-sky-50 p-3 text-sm text-sky-900">
@@ -112,7 +112,7 @@ export function TableDetail({
             </div>
           ) : null}
           {isTotal && bill.status === "open" && bill.pending.length > 0 ? (
-            <p className="-mt-2 text-sm text-muted-foreground">Para corregir el total, primero responda el SINPE por confirmar.</p>
+            <p className="-mt-2 text-sm text-muted-foreground">Para corregir el total, primero responda el pago por confirmar.</p>
           ) : null}
           {isTotal && bill.status === "open" && bill.split ? (
             <p className="-mt-2 text-sm text-muted-foreground">Para corregir el total, primero cancele las partes iguales.</p>

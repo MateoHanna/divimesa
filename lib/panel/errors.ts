@@ -33,7 +33,7 @@ const ERRORS: Record<string, { status: number; message: string }> = {
   invalid_total: { status: 400, message: "El total tiene que ser un monto entero de colones, mayor a cero." },
   total_bill: { status: 409, message: "Esta cuenta es de solo el total y no tiene platos." },
   not_total_bill: { status: 409, message: "Esta cuenta no es de solo el total." },
-  sinpe_pending: { status: 409, message: "Hay un SINPE por confirmar. Toque «Recibido» o «No llegó» primero." },
+  sinpe_pending: { status: 409, message: "Hay un pago por confirmar en esta mesa (SINPE o datáfono). Respóndalo primero." },
   payment_not_pending: { status: 409, message: "Ese pago ya no está por confirmar." },
   payment_already_paid: { status: 409, message: "Ese pago ya se confirmó." },
   simulated_only_demo: { status: 409, message: "Los pagos simulados solo existen en el restaurante de demostración." },

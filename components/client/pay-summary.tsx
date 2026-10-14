@@ -14,7 +14,13 @@ import { cn } from "@/lib/utils";
 export type TipUi = "none" | "5" | "10" | "other";
 
 const LABELS: Record<PayMethod, string> = {
-  sinpe: "SINPE Móvil", card: "Tarjeta", apple_pay: "Apple Pay", google_pay: "Google Pay",
+  sinpe: "SINPE Móvil", terminal: "Tarjeta", card: "Tarjeta en línea", apple_pay: "Apple Pay", google_pay: "Google Pay",
+};
+
+/** Qué pasa después de tocar el botón, según el método. */
+const HINTS: Partial<Record<PayMethod, string>> = {
+  sinpe: "Directo al restaurante. En el siguiente paso le damos el número y el monto.",
+  terminal: "El salonero le lleva el datáfono a la mesa y le cobra este monto.",
 };
 
 export interface SummaryProps {
@@ -23,7 +29,7 @@ export interface SummaryProps {
   onTipUi: (t: TipUi) => void;
   otherTip: string;
   onOtherTip: (v: string) => void;
-  /** Métodos que ofrece el restaurante. Un restaurante real solo ofrece SINPE Móvil. */
+  /** Métodos que ofrece el restaurante. Un restaurante real ofrece SINPE Móvil y tarjeta con el datáfono. */
   methods: PayMethod[];
   method: PayMethod;
   onMethod: (m: PayMethod) => void;
@@ -110,14 +116,21 @@ export function PaySummary(p: SummaryProps) {
               className={cn("flex min-h-14 flex-col items-center justify-center rounded-xl border px-1 text-base font-medium",
                 p.method === m ? "border-primary bg-primary text-primary-foreground" : "bg-background")}>
               {LABELS[m]}
+              {m === "terminal" ? <span className="text-xs font-normal opacity-80">Con el datáfono</span> : null}
               {isComingSoon(m) ? <span className="text-xs font-normal opacity-80">Próximamente</span> : null}
             </button>
           ))}
         </div>
         {isComingSoon(p.method) ? (
           <p className="mt-2 text-xs text-muted-foreground">Próximamente. En esta demo se simula el pago: no se cobra nada.</p>
+        ) : HINTS[p.method] ? (
+          <p className="mt-2 text-sm text-muted-foreground">{HINTS[p.method]}</p>
         ) : null}
       </fieldset>
+      ) : p.method === "terminal" ? (
+        <p className="rounded-xl bg-muted p-3 text-sm">
+          El pago es con <strong>tarjeta</strong>: el salonero le lleva el datáfono a la mesa y le cobra este monto.
+        </p>
       ) : (
         <p className="rounded-xl bg-muted p-3 text-sm">
           El pago es por <strong>SINPE Móvil</strong>, directo al restaurante. En el siguiente paso le damos el número y el monto.
@@ -130,7 +143,10 @@ export function PaySummary(p: SummaryProps) {
         ) : null}
         {p.disabledReason ? <p role="status" className="text-sm text-muted-foreground">{p.disabledReason}</p> : null}
         <Button size="xl" className="h-16 text-xl" disabled={!!p.disabledReason || p.submitting} onClick={p.onPay}>
-          {p.submitting ? "Un momento…" : p.method === "sinpe" ? `Pagar ${formatCRC(q.total)} por SINPE Móvil` : `Pagar ${formatCRC(q.total)}`}
+          {p.submitting ? "Un momento…"
+            : p.method === "sinpe" ? `Pagar ${formatCRC(q.total)} por SINPE Móvil`
+            : p.method === "terminal" ? `Pedir el datáfono · ${formatCRC(q.total)}`
+            : `Pagar ${formatCRC(q.total)}`}
         </Button>
       </div>
     </section>

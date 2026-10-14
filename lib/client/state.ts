@@ -19,7 +19,10 @@ interface RawState {
     id: string;
     status: string;
     mode?: "items" | "total";
-    my_sinpe?: null | { id: string; status: "pending" | "paid" | "failed"; amount: number; tip: number; code: string | null; reported: boolean; kind: MySinpe["kind"] };
+    my_sinpe?: null | {
+      id: string; status: "pending" | "paid" | "failed"; amount: number; tip: number; code: string | null; reported: boolean;
+      kind: MySinpe["kind"]; method?: "sinpe" | "terminal";
+    };
     outcome?: "paid" | "closed";
     lines?: RawLine[];
     totals?: { items_sum: number; subtotal: number; service: number; vat: number; total: number; paid: number; balance: number };
@@ -37,7 +40,7 @@ export function toClientState(raw: RawState): ClientState {
     bill = {
       id: b.id,
       mode: b.mode === "total" ? "total" : "items",
-      mySinpe: b.my_sinpe ?? null,
+      mySinpe: b.my_sinpe ? { ...b.my_sinpe, method: b.my_sinpe.method === "terminal" ? "terminal" : "sinpe" } : null,
       lines: b.lines.map<ClientLine>((l) => ({
         id: l.id, name: l.name, amount: l.amount, status: l.status, reserved: l.reserved,
         reservedUntil: l.reserved_until, splitGroupId: l.split_group_id,
